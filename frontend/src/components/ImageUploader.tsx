@@ -48,7 +48,7 @@ export default function ImageUploader({
     setFiles(next);
   }, []);
 
-  // cleanup previews
+  // previews
   useEffect(() => {
     return () => {
       files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
