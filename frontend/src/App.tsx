@@ -3,6 +3,8 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
+import ImageUploader from './components/ImageUploader'   
+
 function App() {
   const [count, setCount] = useState(0)
 
@@ -16,6 +18,10 @@ function App() {
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
+      
+      <h2 style={{ textAlign: "center", marginTop: 18 }}>STARLABS Upload</h2>
+      <ImageUploader />
+
       <h1>Vite + React</h1>
       <div className="card">
         <button onClick={() => setCount((count) => count + 1)}>
