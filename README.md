@@ -55,3 +55,20 @@ http://localhost:5173
 - Backend and frontend are run in separate terminals
 
 - Environment variables are defined in .env.example files
+
+## API Contract (Upload Flow)
+
+Frontend upload flow uses a presign-style pattern:
+
+1. POST /api/v1/uploads/presign  
+   Req: { filename, contentType }  
+   Res: { uploadUrl, method: "PUT", headers, fileUrl }
+
+2. PUT {uploadUrl}  
+   Uploads raw file bytes using returned headers.
+
+3. POST /api/v1/images  
+   Req: { fileUrl, originalName, contentType }  
+   Res: { id, fileUrl, createdAt }
+
+Note: In local development, `presign` returns an upload URL pointing to our backend (local presign). This keeps the frontend flow identical and allows swapping to S3 later without UI changes.
