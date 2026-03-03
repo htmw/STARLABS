@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
+import { preprocessImage } from "./imageProcessor.js";
 
 dotenv.config();
 
@@ -49,7 +50,12 @@ app.post("/api/v1/uploads/presign", async (req, res) => {
     await ensureUploadsDir();
 
     const safeName = sanitizeFilename(filename);
-    const key = `${Date.now()}-${safeName}`;
+    const lower = String(filename).toLowerCase();
+    const isDicom = lower.endsWith(".dcm") || String(contentType).toLowerCase().includes("dicom");
+    const baseName = safeName.replace(/\.(jpg|jpeg|png|webp)$/i, "");
+    const key = isDicom
+      ? `${Date.now()}-${safeName}` // keep .dcm
+      : `${Date.now()}-${baseName}.png`; // make all images to png 
 
     // Return relative URLs so Vite proxy works cleanly
     return res.json({
@@ -78,7 +84,19 @@ app.put(
       await ensureUploadsDir();
 
       const filePath = path.join("uploads", key);
-      await fs.writeFile(filePath, req.body);
+      const contentType = String(req.headers["content-type"] || "").toLowerCase();
+      const isDicom = contentType.includes("dicom") || key.toLowerCase().endsWith(".dcm");
+      const isImage = contentType.startsWith("image/") ||
+      key.toLowerCase().match(/\.(jpg|jpeg|png|webp)$/);
+
+      let buf = req.body;
+
+      // keep aspect ratio, fit inside 1024x1024, output PNG 
+      if (isImage && !isDicom) {
+        buf = await preprocessImage(buf, { width: 1024, height: 1024, format: "png" });
+      }
+
+await fs.writeFile(filePath, buf);
 
       return res.status(200).json({ ok: true });
     } catch (err) {
