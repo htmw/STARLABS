@@ -4,8 +4,15 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
 import { preprocessImage } from "./imageProcessor.js";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
+
+// TEMP in-memory store until SCRUM-17 DB schema is ready
+const usersByEmail = new Map();
+
+const isValidEmail = (email = "") =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
 
 const app = express();
 
@@ -17,6 +24,56 @@ app.use("/uploads", express.static("uploads"));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
+});
+
+// SCRUM-18: user registration (stub until DB schema is ready)
+app.post("/api/v1/auth/register", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+    const pwd = String(password || "");
+
+    if (!normalizedEmail || !pwd) {
+      return res.status(400).json({ error: "email and password are required" });
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ error: "invalid email format" });
+    }
+
+    if (pwd.length < 8) {
+      return res
+        .status(400)
+        .json({ error: "password must be at least 8 characters" });
+    }
+
+    if (usersByEmail.has(normalizedEmail)) {
+      return res.status(409).json({ error: "email already registered" });
+    }
+
+    const passwordHash = await bcrypt.hash(pwd, 10);
+
+    const user = {
+      id: String(Date.now()), // TODO: replace with DB id/uuid when SCRUM-17 lands
+      email: normalizedEmail,
+      passwordHash, // never return this
+      createdAt: new Date().toISOString(),
+    };
+
+    usersByEmail.set(normalizedEmail, user);
+
+    return res.status(201).json({
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "registration failed" });
+  }
 });
 
 // Helpers
@@ -51,11 +108,13 @@ app.post("/api/v1/uploads/presign", async (req, res) => {
 
     const safeName = sanitizeFilename(filename);
     const lower = String(filename).toLowerCase();
-    const isDicom = lower.endsWith(".dcm") || String(contentType).toLowerCase().includes("dicom");
+    const isDicom =
+      lower.endsWith(".dcm") ||
+      String(contentType).toLowerCase().includes("dicom");
     const baseName = safeName.replace(/\.(jpg|jpeg|png|webp)$/i, "");
     const key = isDicom
       ? `${Date.now()}-${safeName}` // keep .dcm
-      : `${Date.now()}-${baseName}.png`; // make all images to png 
+      : `${Date.now()}-${baseName}.png`; // make all images to png
 
     // Return relative URLs so Vite proxy works cleanly
     return res.json({
@@ -84,19 +143,27 @@ app.put(
       await ensureUploadsDir();
 
       const filePath = path.join("uploads", key);
-      const contentType = String(req.headers["content-type"] || "").toLowerCase();
-      const isDicom = contentType.includes("dicom") || key.toLowerCase().endsWith(".dcm");
-      const isImage = contentType.startsWith("image/") ||
-      key.toLowerCase().match(/\.(jpg|jpeg|png|webp)$/);
+      const contentType = String(
+        req.headers["content-type"] || "",
+      ).toLowerCase();
+      const isDicom =
+        contentType.includes("dicom") || key.toLowerCase().endsWith(".dcm");
+      const isImage =
+        contentType.startsWith("image/") ||
+        key.toLowerCase().match(/\.(jpg|jpeg|png|webp)$/);
 
       let buf = req.body;
 
-      // keep aspect ratio, fit inside 1024x1024, output PNG 
+      // keep aspect ratio, fit inside 1024x1024, output PNG
       if (isImage && !isDicom) {
-        buf = await preprocessImage(buf, { width: 1024, height: 1024, format: "png" });
+        buf = await preprocessImage(buf, {
+          width: 1024,
+          height: 1024,
+          format: "png",
+        });
       }
 
-await fs.writeFile(filePath, buf);
+      await fs.writeFile(filePath, buf);
 
       return res.status(200).json({ ok: true });
     } catch (err) {

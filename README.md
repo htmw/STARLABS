@@ -72,3 +72,31 @@ Frontend upload flow uses a presign-style pattern:
    Res: { id, fileUrl, createdAt }
 
 Note: In local development, `presign` returns an upload URL pointing to our backend (local presign). This keeps the frontend flow identical and allows swapping to S3 later without UI changes.
+
+## API Contract (User Registration - SCRUM-18)
+
+POST /api/v1/auth/register
+
+Request:
+
+```json
+{ "email": "test@example.com", "password": "Password123!" }
+```
+
+Response (201 Created):
+
+```json
+{ "id": "string", "email": "test@example.com", "createdAt": "ISO-8601 string" }
+```
+
+Error Responses:
+
+- 400 Bad Request — invalid email or password
+
+- 409 Conflict — email already registered
+
+Notes:
+
+- Temporary in-memory storage is used until SCRUM-17 (Postgres schema) is merged.
+
+- Passwords are hashed using bcrypt and are never returned in API responses.
