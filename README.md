@@ -100,3 +100,38 @@ Notes:
 - Temporary in-memory storage is used until SCRUM-17 (Postgres schema) is merged.
 
 - Passwords are hashed using bcrypt and are never returned in API responses.
+
+## API Contract (User Login - SCRUM-19)
+
+POST /api/v1/auth/login
+
+Request:
+
+```json
+{ "email": "test@example.com", "password": "Password123!" }
+```
+
+Response (200 OK):
+
+```json
+{
+  "token": "JWT token",
+  "user": {
+    "id": "string",
+    "email": "test@example.com",
+    "createdAt": "ISO-8601 string"
+  }
+}
+```
+
+Error Responses:
+
+- 400 Bad Request — missing email or password
+
+- 401 Unauthorized — invalid credentials
+
+Notes:
+
+- Temporary in-memory lookup is used until SCRUM-17 (Postgres schema) is merged.
+
+- JWT is signed using JWT_SECRET.
