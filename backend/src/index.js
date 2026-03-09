@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import path from "path";
 import { preprocessImage } from "./imageProcessor.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
@@ -73,6 +74,50 @@ app.post("/api/v1/auth/register", async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "registration failed" });
+  }
+});
+
+// SCRUM-19: user login (stub until DB schema is ready)
+app.post("/api/v1/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+    const pwd = String(password || "");
+
+    if (!normalizedEmail || !pwd) {
+      return res.status(400).json({ error: "email and password are required" });
+    }
+
+    const user = usersByEmail.get(normalizedEmail);
+    if (!user) {
+      return res.status(401).json({ error: "invalid credentials" });
+    }
+
+    const passwordMatches = await bcrypt.compare(pwd, user.passwordHash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: "invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET || "dev-secret-change-me",
+      { expiresIn: "1h" },
+    );
+
+    return res.status(200).json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "login failed" });
   }
 });
 
