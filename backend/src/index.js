@@ -6,11 +6,9 @@ import path from "path";
 import { preprocessImage } from "./imageProcessor.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { connectToMongo, getDb } from "./db.js";
 
 dotenv.config();
-
-// TEMP in-memory store until SCRUM-17 DB schema is ready
-const usersByEmail = new Map();
 
 const isValidEmail = (email = "") =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
@@ -27,7 +25,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// SCRUM-18: user registration (stub until DB schema is ready)
+// SCRUM-18: user registration
 app.post("/api/v1/auth/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -51,33 +49,43 @@ app.post("/api/v1/auth/register", async (req, res) => {
         .json({ error: "password must be at least 8 characters" });
     }
 
-    if (usersByEmail.has(normalizedEmail)) {
+    const db = getDb();
+    const users = db.collection("users");
+
+    const existingUser = await users.findOne({ email: normalizedEmail });
+    if (existingUser) {
       return res.status(409).json({ error: "email already registered" });
     }
 
     const passwordHash = await bcrypt.hash(pwd, 10);
+    const now = new Date().toISOString();
 
     const user = {
-      id: String(Date.now()), // TODO: replace with DB id/uuid when SCRUM-17 lands
       email: normalizedEmail,
-      passwordHash, // never return this
-      createdAt: new Date().toISOString(),
+      passwordHash,
+      createdAt: now,
+      updatedAt: now,
     };
 
-    usersByEmail.set(normalizedEmail, user);
+    const result = await users.insertOne(user);
 
     return res.status(201).json({
-      id: user.id,
+      id: result.insertedId.toString(),
       email: user.email,
       createdAt: user.createdAt,
     });
   } catch (err) {
     console.error(err);
+
+    if (err?.code === 11000) {
+      return res.status(409).json({ error: "email already registered" });
+    }
+
     return res.status(500).json({ error: "registration failed" });
   }
 });
 
-// SCRUM-19: user login (stub until DB schema is ready)
+// SCRUM-19: user login
 app.post("/api/v1/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -91,7 +99,10 @@ app.post("/api/v1/auth/login", async (req, res) => {
       return res.status(400).json({ error: "email and password are required" });
     }
 
-    const user = usersByEmail.get(normalizedEmail);
+    const db = getDb();
+    const users = db.collection("users");
+
+    const user = await users.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(401).json({ error: "invalid credentials" });
     }
@@ -102,7 +113,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user._id.toString(), email: user.email },
       process.env.JWT_SECRET || "dev-secret-change-me",
       { expiresIn: "1h" },
     );
@@ -110,7 +121,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
     return res.status(200).json({
       token,
       user: {
-        id: user.id,
+        id: user._id.toString(),
         email: user.email,
         createdAt: user.createdAt,
       },
@@ -218,22 +229,56 @@ app.put(
   },
 );
 
-// 3) register image metadata (stub until DB schema is ready)
+// SCRUM-20: register image metadata
 app.post("/api/v1/images", async (req, res) => {
-  const { fileUrl, originalName, contentType } = req.body || {};
-  if (!fileUrl) return res.status(400).json({ error: "fileUrl is required" });
+  try {
+    const { fileUrl, originalName, contentType } = req.body || {};
 
-  // TODO: persist this once SCRUM-17 schema is merged
-  return res.status(201).json({
-    id: String(Date.now()),
-    fileUrl,
-    originalName: originalName || null,
-    contentType: contentType || null,
-    createdAt: new Date().toISOString(),
-  });
+    if (!fileUrl) {
+      return res.status(400).json({ error: "fileUrl is required" });
+    }
+
+    const db = getDb();
+    const images = db.collection("images");
+
+    const now = new Date().toISOString();
+
+    const imageDoc = {
+      fileUrl,
+      originalName: originalName || null,
+      contentType: contentType || null,
+      uploadedBy: null, // TODO: link to authenticated user later
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await images.insertOne(imageDoc);
+
+    return res.status(201).json({
+      id: result.insertedId.toString(),
+      fileUrl: imageDoc.fileUrl,
+      originalName: imageDoc.originalName,
+      contentType: imageDoc.contentType,
+      createdAt: imageDoc.createdAt,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "image registration failed" });
+  }
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-});
+
+async function startServer() {
+  try {
+    await connectToMongo();
+    app.listen(PORT, () => {
+      console.log(`Backend running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  }
+}
+
+startServer();
