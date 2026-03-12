@@ -36,17 +36,19 @@ app.post("/api/v1/auth/register", async (req, res) => {
     const pwd = String(password || "");
 
     if (!normalizedEmail || !pwd) {
-      return res.status(400).json({ error: "email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required." });
     }
 
     if (!isValidEmail(normalizedEmail)) {
-      return res.status(400).json({ error: "invalid email format" });
+      return res.status(400).json({ message: "Invalid email format." });
     }
 
     if (pwd.length < 8) {
       return res
         .status(400)
-        .json({ error: "password must be at least 8 characters" });
+        .json({ message: "Password must be at least 8 characters." });
     }
 
     const db = getDb();
@@ -54,7 +56,7 @@ app.post("/api/v1/auth/register", async (req, res) => {
 
     const existingUser = await users.findOne({ email: normalizedEmail });
     if (existingUser) {
-      return res.status(409).json({ error: "email already registered" });
+      return res.status(409).json({ message: "User already exists." });
     }
 
     const passwordHash = await bcrypt.hash(pwd, 10);
@@ -78,10 +80,10 @@ app.post("/api/v1/auth/register", async (req, res) => {
     console.error(err);
 
     if (err?.code === 11000) {
-      return res.status(409).json({ error: "email already registered" });
+      return res.status(409).json({ message: "User already exists." });
     }
 
-    return res.status(500).json({ error: "registration failed" });
+    return res.status(500).json({ message: "Registration failed." });
   }
 });
 
