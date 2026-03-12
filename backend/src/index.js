@@ -98,7 +98,9 @@ app.post("/api/v1/auth/login", async (req, res) => {
     const pwd = String(password || "");
 
     if (!normalizedEmail || !pwd) {
-      return res.status(400).json({ error: "email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required." });
     }
 
     const db = getDb();
@@ -106,12 +108,12 @@ app.post("/api/v1/auth/login", async (req, res) => {
 
     const user = await users.findOne({ email: normalizedEmail });
     if (!user) {
-      return res.status(401).json({ error: "invalid credentials" });
+      return res.status(401).json({ message: "Invalid email or password." });
     }
 
     const passwordMatches = await bcrypt.compare(pwd, user.passwordHash);
     if (!passwordMatches) {
-      return res.status(401).json({ error: "invalid credentials" });
+      return res.status(401).json({ message: "Invalid email or password." });
     }
 
     const token = jwt.sign(
@@ -130,7 +132,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "login failed" });
+    return res.status(500).json({ message: "Login failed." });
   }
 });
 
