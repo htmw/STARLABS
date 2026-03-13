@@ -13,6 +13,34 @@ dotenv.config();
 const isValidEmail = (email = "") =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
 
+function requireAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || "";
+
+    if (!authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Authorization token is required." });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "dev-secret-change-me",
+    );
+
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+    };
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token." });
+  }
+}
+
 const app = express();
 
 app.use(cors());
@@ -70,9 +98,13 @@ app.post("/api/v1/auth/register", async (req, res) => {
     };
 
     const result = await users.insertOne(user);
+    const userId = result.insertedId.toString();
+
+    await users.updateOne({ _id: result.insertedId }, { $set: { userId } });
 
     return res.status(201).json({
-      id: result.insertedId.toString(),
+      id: userId,
+      userId,
       email: user.email,
       createdAt: user.createdAt,
     });
@@ -117,7 +149,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id.toString(), email: user.email },
+      { userId: user.userId || user._id.toString(), email: user.email },
       process.env.JWT_SECRET || "dev-secret-change-me",
       { expiresIn: "1h" },
     );
@@ -126,6 +158,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
       token,
       user: {
         id: user._id.toString(),
+        userId: user.userId || user._id.toString(),
         email: user.email,
         createdAt: user.createdAt,
       },
@@ -234,12 +267,12 @@ app.put(
 );
 
 // SCRUM-20: register image metadata
-app.post("/api/v1/images", async (req, res) => {
+app.post("/api/v1/images", requireAuth, async (req, res) => {
   try {
     const { fileUrl, originalName, contentType } = req.body || {};
 
     if (!fileUrl) {
-      return res.status(400).json({ error: "fileUrl is required" });
+      return res.status(400).json({ message: "fileUrl is required" });
     }
 
     const db = getDb();
@@ -251,7 +284,10 @@ app.post("/api/v1/images", async (req, res) => {
       fileUrl,
       originalName: originalName || null,
       contentType: contentType || null,
-      uploadedBy: null, // TODO: link to authenticated user later
+      uploadedBy: {
+        userId: req.user.userId,
+        email: req.user.email,
+      },
       createdAt: now,
       updatedAt: now,
     };
@@ -263,11 +299,12 @@ app.post("/api/v1/images", async (req, res) => {
       fileUrl: imageDoc.fileUrl,
       originalName: imageDoc.originalName,
       contentType: imageDoc.contentType,
+      uploadedBy: imageDoc.uploadedBy,
       createdAt: imageDoc.createdAt,
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "image registration failed" });
+    return res.status(500).json({ message: "Image registration failed." });
   }
 });
 

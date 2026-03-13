@@ -98,15 +98,25 @@ export default function ImageUploader({
         if (!uploadRes.ok) throw new Error(`Upload failed (${uploadRes.status})`);
 
         // 3) register
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          throw new Error("You must be logged in to upload images.");
+        }
+
         const registerRes = await fetch(registerEndpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             fileUrl: presign.fileUrl,
             originalName: file.name,
             contentType,
           }),
         });
+
         if (!registerRes.ok) throw new Error(`Register failed (${registerRes.status})`);
         const saved: UploadRecord = await registerRes.json();
 
