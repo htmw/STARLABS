@@ -2,7 +2,11 @@ import { useState } from "react";
 import ImageUploader from "../components/ImageUploader";
 import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
 
-function UploadPage() {
+type UploadPageProps = {
+  onLogout: () => void;
+};
+
+function UploadPage({ onLogout }: UploadPageProps) {
   const [images, setImages] = useState<GalleryImage[]>([]);
 
   const handleUploadSuccess = (items: any[]) => {
@@ -22,20 +26,33 @@ function UploadPage() {
   };
 
   return (
-    <>
-      <h2 style={{ textAlign: "center", marginTop: 18 }}>STARLABS Upload</h2>
+    <main className="upload-page">
+      <div className="upload-card">
+        <div className="upload-header">
+          <h1>KneeVision</h1>
+          <button className="secondary-button" onClick={onLogout}>
+            Logout
+          </button>
+        </div>
 
-      <ImageUploader onUploadSuccess={handleUploadSuccess} />
+        <p className="upload-subtitle">Upload and review knee X-ray images</p>
 
-      <h2 style={{ textAlign: "center", marginTop: 18 }}>Gallery</h2>
-      <ImageGallery images={images} />
+        <ImageUploader onUploadSuccess={handleUploadSuccess} />
 
-      <div style={{ textAlign: "center", marginTop: 10 }}>
-        <button onClick={addMockImage} style={{ padding: "8px 12px" }}>
-          Add Mock Image
-        </button>
+        <h2 className="upload-section-title">Gallery</h2>
+        <ImageGallery images={images} />
+
+        {images.length === 0 && (
+          <p className="upload-gallery-empty">No images to display yet.</p>
+        )}
+
+        <div className="upload-actions">
+          <button className="secondary-button" onClick={addMockImage}>
+            Add Mock Image
+          </button>
+        </div>
       </div>
-    </>
+    </main>
   );
 }
 
