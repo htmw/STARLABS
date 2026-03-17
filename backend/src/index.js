@@ -322,4 +322,30 @@ async function startServer() {
   }
 }
 
+app.get("/api/v1/images", requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const images = db.collection("images");
+
+    const docs = await images
+      .find({ "uploadedBy.userId": req.user.userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const result = docs.map((doc) => ({
+      id: doc._id.toString(),
+      fileUrl: doc.fileUrl,
+      originalName: doc.originalName,
+      contentType: doc.contentType,
+      uploadedBy: doc.uploadedBy,
+      createdAt: doc.createdAt,
+    }));
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Failed to fetch images." });
+  }
+});
+
 startServer();
