@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ImageUploader from "../components/ImageUploader";
 import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
-import type { AnalysisResult, ProbabilityItem } from "./ResultsPage";
+import type { AnalysisResult } from "./ResultsPage";
 
 type UploadPageProps = {
   onLogout: () => void;
@@ -16,72 +16,19 @@ function authHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function hashString(input: string) {
-  let hash = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash * 31 + input.charCodeAt(i)) % 100000;
-  }
-  return Math.abs(hash);
-}
-
-function createProbabilitySet(seed: number): ProbabilityItem[] {
-  const templates: number[][] = [
-    [82, 10, 4, 2, 2],
-    [14, 64, 11, 6, 5],
-    [8, 18, 52, 14, 8],
-    [4, 9, 19, 50, 18],
-    [2, 4, 8, 18, 68],
-  ];
-
-  const picked = templates[seed % templates.length];
-
-  return picked.map((value, index) => ({
-    label: `Grade ${index}`,
-    value,
-  }));
-}
-
-function severityLabelFromGrade(grade: string) {
-  switch (grade) {
-    case "Grade 0":
-      return "None";
-    case "Grade 1":
-      return "Doubtful";
-    case "Grade 2":
-      return "Mild";
-    case "Grade 3":
-      return "Moderate";
-    case "Grade 4":
-      return "Severe";
-    default:
-      return "Unknown";
-  }
-}
-
-function buildMockAnalysis(item: any): AnalysisResult {
-  const fileName = item.originalName || "Uploaded image";
-  const seed = hashString(`${item.id ?? ""}-${fileName}`);
-  const probabilities = createProbabilitySet(seed);
-  const best = probabilities.reduce((prev, cur) =>
-    cur.value > prev.value ? cur : prev,
-  );
-
-  const confidenceJitter = (seed % 7) * 0.31;
-  const confidence = Math.min(98, best.value + confidenceJitter);
-  const grade = best.label;
-  const severityLabel = severityLabelFromGrade(grade);
-
+function buildRealAnalysis(savedItem: any, prediction: any): AnalysisResult {
   return {
-    imageUrl: `${BACKEND}${item.fileUrl}`,
-    fileName,
-    grade,
-    confidence,
-    probabilities,
-    severityLabel,
-    summary: `The current model predicts ${grade} (${severityLabel.toLowerCase()} osteoarthritis pattern) with ${confidence.toFixed(
-      2,
-    )}% confidence. This front-end page is already structured to support the full Streamlit-style workflow, including the uploaded image, predicted grade, confidence score, Grad-CAM explanation, and class probabilities.`,
-    isMock: true,
+    imageUrl: `${BACKEND}${savedItem.fileUrl}`,
+    fileName: savedItem.originalName || "Uploaded image",
+    grade: prediction.grade,
+    confidence: prediction.confidence,
+    probabilities: prediction.probabilities || [],
+    severityLabel: prediction.severityLabel || "Unknown",
+    summary:
+      prediction.summary ||
+      `The model predicts ${prediction.grade} with ${prediction.confidence}% confidence.`,
+    heatmapUrl: prediction.heatmapUrl,
+    isMock: false,
   };
 }
 
@@ -89,6 +36,7 @@ function UploadPage({ onLogout, onAnalysisReady }: UploadPageProps) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  const [predicting, setPredicting] = useState(false);
 
   const fetchImages = useCallback(async () => {
     try {
@@ -112,6 +60,7 @@ function UploadPage({ onLogout, onAnalysisReady }: UploadPageProps) {
       const mapped: GalleryImage[] = data.map((img: any) => ({
         id: img.id,
         url: `${BACKEND}${img.fileUrl}`,
+        fileUrl: img.fileUrl,
         originalName: img.originalName,
         contentType: img.contentType,
         createdAt: img.createdAt,
@@ -132,12 +81,45 @@ function UploadPage({ onLogout, onAnalysisReady }: UploadPageProps) {
   const handleUploadSuccess = async (items: any[]) => {
     await fetchImages();
 
-    // For now, build a mock analysis result from the newest uploaded item
-    // Later, replace this with the real prediction API response
+    // Upload succeeded → immediately request prediction for the newest image
     if (items?.length > 0) {
       const newest = items[0];
-      const result = buildMockAnalysis(newest);
-      onAnalysisReady(result);
+
+      try {
+        setPredicting(true);
+
+        const res = await fetch(`${BACKEND}/api/v1/predict`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeader(),
+          },
+          body: JSON.stringify({
+            fileUrl: newest.fileUrl,
+            originalName: newest.originalName,
+          }),
+        });
+
+        if (res.status === 401) {
+          onLogout();
+          return;
+        }
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          throw new Error(
+            errorData?.message || `Prediction failed (${res.status})`,
+          );
+        }
+
+        const prediction = await res.json();
+        const result = buildRealAnalysis(newest, prediction);
+        onAnalysisReady(result);
+      } catch (err: any) {
+        setFetchError(err.message || "Prediction failed.");
+      } finally {
+        setPredicting(false);
+      }
     }
   };
 
@@ -165,6 +147,12 @@ function UploadPage({ onLogout, onAnalysisReady }: UploadPageProps) {
         <p className="upload-subtitle">Upload and review knee X-ray images</p>
 
         <ImageUploader onUploadSuccess={handleUploadSuccess} />
+
+        {predicting ? (
+          <p className="upload-gallery-empty" style={{ marginTop: "16px" }}>
+            Running AI analysis...
+          </p>
+        ) : null}
 
         <h2 className="upload-section-title">Gallery</h2>
 
