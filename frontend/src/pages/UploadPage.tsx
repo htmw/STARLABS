@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import ImageUploader from "../components/ImageUploader";
 import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
+import type { AnalysisResult, ProbabilityItem } from "./ResultsPage";
 
 type UploadPageProps = {
   onLogout: () => void;
+  onAnalysisReady: (result: AnalysisResult) => void;
 };
 
 // Change this if your backend runs on a different port
@@ -14,7 +16,76 @@ function authHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function UploadPage({ onLogout }: UploadPageProps) {
+function hashString(input: string) {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) % 100000;
+  }
+  return Math.abs(hash);
+}
+
+function createProbabilitySet(seed: number): ProbabilityItem[] {
+  const templates: number[][] = [
+    [82, 10, 4, 2, 2],
+    [14, 64, 11, 6, 5],
+    [8, 18, 52, 14, 8],
+    [4, 9, 19, 50, 18],
+    [2, 4, 8, 18, 68],
+  ];
+
+  const picked = templates[seed % templates.length];
+
+  return picked.map((value, index) => ({
+    label: `Grade ${index}`,
+    value,
+  }));
+}
+
+function severityLabelFromGrade(grade: string) {
+  switch (grade) {
+    case "Grade 0":
+      return "None";
+    case "Grade 1":
+      return "Doubtful";
+    case "Grade 2":
+      return "Mild";
+    case "Grade 3":
+      return "Moderate";
+    case "Grade 4":
+      return "Severe";
+    default:
+      return "Unknown";
+  }
+}
+
+function buildMockAnalysis(item: any): AnalysisResult {
+  const fileName = item.originalName || "Uploaded image";
+  const seed = hashString(`${item.id ?? ""}-${fileName}`);
+  const probabilities = createProbabilitySet(seed);
+  const best = probabilities.reduce((prev, cur) =>
+    cur.value > prev.value ? cur : prev,
+  );
+
+  const confidenceJitter = (seed % 7) * 0.31;
+  const confidence = Math.min(98, best.value + confidenceJitter);
+  const grade = best.label;
+  const severityLabel = severityLabelFromGrade(grade);
+
+  return {
+    imageUrl: `${BACKEND}${item.fileUrl}`,
+    fileName,
+    grade,
+    confidence,
+    probabilities,
+    severityLabel,
+    summary: `The current model predicts ${grade} (${severityLabel.toLowerCase()} osteoarthritis pattern) with ${confidence.toFixed(
+      2,
+    )}% confidence. This front-end page is already structured to support the full Streamlit-style workflow, including the uploaded image, predicted grade, confidence score, Grad-CAM explanation, and class probabilities.`,
+    isMock: true,
+  };
+}
+
+function UploadPage({ onLogout, onAnalysisReady }: UploadPageProps) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -58,8 +129,16 @@ function UploadPage({ onLogout }: UploadPageProps) {
     fetchImages();
   }, [fetchImages]);
 
-  const handleUploadSuccess = async (_items: any[]) => {
+  const handleUploadSuccess = async (items: any[]) => {
     await fetchImages();
+
+    // For now, build a mock analysis result from the newest uploaded item
+    // Later, replace this with the real prediction API response
+    if (items?.length > 0) {
+      const newest = items[0];
+      const result = buildMockAnalysis(newest);
+      onAnalysisReady(result);
+    }
   };
 
   const addMockImage = () => {
