@@ -22,3 +22,6 @@ pnpm-debug.log*
 
 # uploads
 backend/uploads/
+
+# Ai model
+ml-service/*.hdf5

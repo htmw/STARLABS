@@ -4,17 +4,24 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UploadPage from "./pages/UploadPage";
+import ResultsPage, { type AnalysisResult } from "./pages/ResultsPage";
 
 type AuthMode = "landing" | "login" | "register";
+type AppView = "upload" | "results";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     Boolean(localStorage.getItem("token")),
   );
   const [authMode, setAuthMode] = useState<AuthMode>("landing");
+  const [appView, setAppView] = useState<AppView>("upload");
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null,
+  );
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
+    setAppView("upload");
   };
 
   const handleLogout = () => {
@@ -22,15 +29,41 @@ function App() {
     localStorage.removeItem("user");
     setIsAuthenticated(false);
     setAuthMode("landing");
+    setAppView("upload");
+    setAnalysisResult(null);
   };
 
   const handleRegistrationSuccess = () => {
     setAuthMode("login");
   };
 
+  const handleAnalysisReady = (result: AnalysisResult) => {
+    setAnalysisResult(result);
+    setAppView("results");
+  };
+
+  const handleBackToUpload = () => {
+    setAppView("upload");
+  };
+
   // Already authenticated → go straight to upload
   if (isAuthenticated) {
-    return <UploadPage onLogout={handleLogout} />;
+    if (appView === "results" && analysisResult) {
+      return (
+        <ResultsPage
+          result={analysisResult}
+          onBackToUpload={handleBackToUpload}
+          onLogout={handleLogout}
+        />
+      );
+    }
+
+    return (
+      <UploadPage
+        onLogout={handleLogout}
+        onAnalysisReady={handleAnalysisReady}
+      />
+    );
   }
 
   // Landing page
