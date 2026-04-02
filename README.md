@@ -1,154 +1,255 @@
-# STARLABS
+# KneeVision — STARLABS Capstone
 
-KneeVision — AI-assisted knee X-ray analysis platform.
+AI-assisted knee X-ray analysis platform. Classifies knee osteoarthritis severity using the Kellgren-Lawrence (KL) grading scale (Grade 0–4) and produces Grad-CAM heatmap explanations.
 
-Frontend: React + Vite  
-Backend: Node.js + Express  
-Database: MongoDB Atlas
+---
 
-## Local Development
+## Project Structure
 
-### Database (MongoDB Atlas)
+```
+STARLABS/
+├── .env.example                  # Root env template (all services)
+├── .gitignore
+│
+├── backend/                      # Node.js / Express API
+│   ├── Dockerfile                # Multi-stage production build
+│   ├── .dockerignore
+│   ├── package.json
+│   └── src/
+│       ├── index.js              # Express app + all route handlers
+│       ├── db.js                 # MongoDB connection singleton
+│       └── imageProcessor.js     # sharp-based image preprocessing
+│
+├── frontend/                     # React 19 + Vite + TypeScript SPA
+│   ├── Dockerfile                # Build → nginx multi-stage
+│   ├── .dockerignore
+│   ├── nginx.conf                # SPA fallback + /api proxy
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── src/
+│       ├── App.tsx               # Root component + routing state
+│       ├── pages/
+│       │   ├── LandingPage.tsx
+│       │   ├── LoginPage.tsx
+│       │   ├── RegisterPage.tsx
+│       │   ├── UploadPage.tsx    # Upload + gallery + predict trigger
+│       │   └── ResultsPage.tsx   # KL grade + Grad-CAM + probabilities
+│       └── components/
+│           ├── ImageUploader.tsx # Drag-and-drop uploader
+│           ├── ImageGallery.tsx  # User's uploaded X-ray gallery
+│           ├── LoginForm.tsx
+│           └── RegisterForm.tsx
+│
+├── ml-service/                   # Python FastAPI + TensorFlow inference
+│   ├── Dockerfile                # Expects model.hdf5 mounted at runtime
+│   ├── .dockerignore
+│   ├── requirements.txt
+│   └── app.py                   # /predict endpoint + Grad-CAM logic
+│
+└── infra/
+    ├── docker-compose.yml        # Production: all 4 services
+    └── docker-compose.dev.yml    # Dev override: hot-reload
+```
 
-The backend uses **MongoDB Atlas** for persistent storage.
+---
 
-Database name:
+## Architecture
 
-kneevision
+```
+Browser
+  │
+  ▼
+┌─────────────┐   80/443
+│   frontend  │  (nginx)      serves React SPA
+│   (nginx)   │  ─────────── proxies /api/* → backend:4000
+└─────────────┘              proxies /uploads/* → backend:4000
+        │
+        ▼
+┌─────────────┐   :4000
+│   backend   │  (Express)
+│  (Node.js)  │──────────────▶ MongoDB Atlas (or local mongo:27017)
+└─────────────┘
+        │ POST /predict (multipart)
+        ▼
+┌─────────────┐   :8000
+│ ml-service  │  (FastAPI + TensorFlow)
+│  (Python)   │──────────────▶ model.hdf5 (bind-mounted volume)
+└─────────────┘
+```
 
-Collections currently used:
+---
 
-- `users` – stores registered users with hashed passwords
-- `images` – stores uploaded image metadata
+## Quick Start (Docker Compose)
 
-MongoDB automatically creates collections when the first document is inserted.
+### Prerequisites
 
-Environment variables for database access are defined in `.env` files.
+- Docker Desktop ≥ 4.x
+- `model.hdf5` file placed at the repo root (or set `MODEL_PATH` in `.env`)
 
-### Backend (Express + MongoDB)
+### 1. Set up environment variables
 
-From the project root:
+```bash
+cp .env.example .env
+# Edit .env: set JWT_SECRET, MONGODB_URI (Atlas or local), MODEL_PATH
+```
+
+### 2. Run all services
+
+```bash
+cd infra
+docker compose up --build
+```
+
+| Service    | URL                       |
+| ---------- | ------------------------- |
+| Frontend   | http://localhost          |
+| Backend    | http://localhost:4000     |
+| ML Service | http://localhost:8000     |
+| MongoDB    | mongodb://localhost:27017 |
+
+### 3. Development mode (hot reload)
+
+```bash
+cd infra
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+- Backend: Node.js `--watch` reloads on source changes
+- Frontend: Vite HMR at http://localhost:5173
+- ML Service: uvicorn `--reload` restarts on `app.py` changes
+
+---
+
+## Running Without Docker (local dev)
+
+### MongoDB
+
+Use MongoDB Atlas or run locally:
+
+```bash
+docker run -p 27017:27017 mongo:7
+```
+
+### ML Service
+
+```bash
+cd ml-service
+pip install -r requirements.txt
+MODEL_PATH=/path/to/model.hdf5 uvicorn app:app --reload --port 8000
+```
+
+### Backend
 
 ```bash
 cd backend
+cp .env.example .env   # fill in MONGODB_URI, JWT_SECRET, ML_SERVICE_URL
 npm install
-npm run dev
+npm run dev            # nodemon on :4000
 ```
 
-Backend runs at:
-
-http://localhost:4000
-
-The backend connects to MongoDB Atlas using the `MONGODB_URI` environment variable.
-
-### Frontend (React + Vite)
-
-From the project root:
+### Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev            # Vite on :5173
 ```
 
-Frontend runs at:
+---
 
-http://localhost:5173
+## Model File
 
-### Important notes
+The `model.hdf5` file is excluded from git (it is large). Distribute it separately.
 
-- MongoDB Atlas is used for the database
+**For Docker:** place `model.hdf5` next to `infra/docker-compose.yml` and set in `.env`:
 
-- Backend and frontend are run in separate terminals
-
-- Environment variables are defined in .env.example files
-
-## Environment Variables
-
-Example backend `.env` file:
-
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/kneevision
-JWT_SECRET=dev-secret-change-me
-PORT=4000
-
-Important: Never commit real credentials or connection strings to GitHub.
-
-## API Contract (Upload Flow)
-
-Frontend upload flow uses a presign-style pattern:
-
-1. POST /api/v1/uploads/presign  
-   Req: { filename, contentType }  
-   Res: { uploadUrl, method: "PUT", headers, fileUrl }
-
-2. PUT {uploadUrl}  
-   Uploads raw file bytes using returned headers.
-
-3. POST /api/v1/images  
-   Req: { fileUrl, originalName, contentType }  
-   Res: { id, fileUrl, createdAt }
-
-Note: In local development, `presign` returns an upload URL pointing to our backend (local presign). This keeps the frontend flow identical and allows swapping to S3 later without UI changes. Image metadata is stored in the MongoDB `images` collection after upload.
-
-## API Contract (User Registration - SCRUM-18)
-
-POST /api/v1/auth/register
-
-Request:
-
-```json
-{ "email": "test@example.com", "password": "Password123!" }
+```
+MODEL_PATH=./model.hdf5
 ```
 
-Response (201 Created):
+The compose file bind-mounts it read-only into the `ml-service` container at `/app/model.hdf5`.
 
-```json
-{ "id": "string", "email": "test@example.com", "createdAt": "ISO-8601 string" }
-```
+---
 
-Error Responses:
+## API Reference
 
-- 400 Bad Request — invalid email or password
+### Auth
 
-- 409 Conflict — email already registered
+| Method | Path                  | Auth | Description       |
+| ------ | --------------------- | ---- | ----------------- |
+| POST   | /api/v1/auth/register | —    | Register new user |
+| POST   | /api/v1/auth/login    | —    | Login, get JWT    |
 
-Notes:
+### Upload Flow
 
-- User data is stored in the MongoDB `users` collection.
+| Method | Path                    | Auth | Description                        |
+| ------ | ----------------------- | ---- | ---------------------------------- |
+| POST   | /api/v1/uploads/presign | —    | Get upload URL + fileUrl           |
+| PUT    | /api/v1/uploads/:key    | —    | Upload raw bytes (preprocessed)    |
+| POST   | /api/v1/images          | JWT  | Register image metadata in MongoDB |
+| GET    | /api/v1/images          | JWT  | List user's uploaded images        |
 
-- Passwords are hashed using bcrypt and are never returned in API responses.
+### Inference
 
-## API Contract (User Login - SCRUM-19)
+| Method | Path            | Auth | Description                        |
+| ------ | --------------- | ---- | ---------------------------------- |
+| POST   | /api/v1/predict | JWT  | Run KL-grade prediction + Grad-CAM |
 
-POST /api/v1/auth/login
-
-Request:
-
-```json
-{ "email": "test@example.com", "password": "Password123!" }
-```
-
-Response (200 OK):
+#### Prediction Response
 
 ```json
 {
-  "token": "JWT token",
-  "user": {
-    "id": "string",
-    "email": "test@example.com",
-    "createdAt": "ISO-8601 string"
-  }
+  "grade": "Grade 2",
+  "confidence": 87.43,
+  "severityLabel": "Mild",
+  "summary": "The model predicts Grade 2 with 87.43% confidence.",
+  "probabilities": [
+    { "label": "Grade 0", "value": 1.2 },
+    { "label": "Grade 1", "value": 3.5 },
+    { "label": "Grade 2", "value": 87.43 },
+    { "label": "Grade 3", "value": 6.1 },
+    { "label": "Grade 4", "value": 1.77 }
+  ],
+  "heatmapUrl": "data:image/png;base64,..."
 }
 ```
 
-Error Responses:
+---
 
-- 400 Bad Request — missing email or password
+## Image Preprocessing Pipeline
 
-- 401 Unauthorized — invalid credentials
+All uploaded images are processed server-side by `backend/src/imageProcessor.js` before storage:
 
-Notes:
+1. **Grayscale conversion** — removes color channels irrelevant to X-ray analysis
+2. **Resize to 1024×1024 max** — preserves aspect ratio (`fit: inside`), no upscaling
+3. **Lanczos3 resampling** — high-quality downsample
+4. **PNG output** — lossless format suitable for medical images
 
-- Login authenticates users against the MongoDB `users` collection.
+DICOM files (`.dcm`) are stored as-is without preprocessing.
 
-- JWT is signed using JWT_SECRET.
+---
+
+## Environment Variables
+
+| Variable               | Service    | Description                                       |
+| ---------------------- | ---------- | ------------------------------------------------- |
+| `MONGODB_URI`          | backend    | MongoDB connection string                         |
+| `JWT_SECRET`           | backend    | Secret for signing JWTs (use a strong random str) |
+| `PORT`                 | backend    | Backend HTTP port (default: 4000)                 |
+| `ML_SERVICE_URL`       | backend    | URL of the FastAPI service                        |
+| `MODEL_PATH`           | ml-service | Path to model.hdf5 inside container               |
+| `LAST_CONV_LAYER_NAME` | ml-service | Grad-CAM target layer name                        |
+| `VITE_BACKEND_URL`     | frontend   | Backend URL injected at Vite build time           |
+
+---
+
+## Tech Stack
+
+| Layer      | Technology                                      |
+| ---------- | ----------------------------------------------- |
+| Frontend   | React 19, TypeScript, Vite, react-dropzone      |
+| Backend    | Node.js 20, Express 5, MongoDB, sharp, bcryptjs |
+| ML Service | Python 3.10, FastAPI, TensorFlow 2.12, Grad-CAM |
+| Database   | MongoDB Atlas (prod) / MongoDB 7 Docker (dev)   |
+| Serving    | nginx 1.27-alpine                               |
+| Container  | Docker + Docker Compose                         |
