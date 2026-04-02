@@ -187,6 +187,32 @@ const isSafeKey = (key) => {
   );
 };
 
+const ML_SERVICE_URL =
+  process.env.ML_SERVICE_URL || "http://localhost:8000";
+
+async function callMlPredict(localFilePath, originalName = "image.png") {
+  const fileBuffer = await fs.readFile(localFilePath);
+
+  const form = new FormData();
+  const blob = new Blob([fileBuffer], { type: "image/png" });
+
+  form.append("file", blob, originalName);
+
+  const response = await fetch(`${ML_SERVICE_URL}/predict`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `ML service request failed (${response.status}): ${errorText}`,
+    );
+  }
+
+  return response.json();
+}
+
 // 1) presign (local dev version)
 app.post("/api/v1/uploads/presign", async (req, res) => {
   try {
@@ -305,6 +331,44 @@ app.post("/api/v1/images", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Image registration failed." });
+  }
+});
+
+// SCRUM-46: call AI inference service for a saved image
+app.post("/api/v1/predict", requireAuth, async (req, res) => {
+  try {
+    const { fileUrl, originalName } = req.body || {};
+
+    if (!fileUrl) {
+      return res.status(400).json({ message: "fileUrl is required." });
+    }
+
+    if (
+      typeof fileUrl !== "string" ||
+      !fileUrl.startsWith("/uploads/")
+    ) {
+      return res.status(400).json({ message: "Invalid fileUrl." });
+    }
+
+    const decodedFileUrl = decodeURIComponent(fileUrl);
+    const filename = path.basename(decodedFileUrl);
+    const localFilePath = path.join("uploads", filename);
+
+    try {
+      await fs.access(localFilePath);
+    } catch {
+      return res.status(404).json({ message: "Uploaded file not found." });
+    }
+
+    const prediction = await callMlPredict(
+      localFilePath,
+      originalName || filename,
+    );
+
+    return res.status(200).json(prediction);
+  } catch (err) {
+    console.error("Prediction failed:", err);
+    return res.status(500).json({ message: "Prediction failed." });
   }
 });
 
