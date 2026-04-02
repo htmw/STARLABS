@@ -1,28 +1,21 @@
-# Local development override — run with:
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-#
-# This overrides the production images with bind-mounted source code
-# so that nodemon / vite HMR hot-reload without rebuilding images.
-
 services:
-
   backend:
     build:
       context: ../backend
-      dockerfile: Dockerfile.dev      # see backend/Dockerfile.dev
+      dockerfile: Dockerfile.dev # see backend/Dockerfile.dev
     volumes:
-      - ../backend/src:/app/src       # live code sync
+      - ../backend/src:/app/src # live code sync
       - uploads:/app/uploads
     environment:
       NODE_ENV: development
-    command: ["node", "--watch", "src/index.js"]   # Node 20 built-in watch
+    command: ["node", "--watch", "src/index.js"] # Node 20 built-in watch
 
   frontend:
     image: node:20-alpine
     working_dir: /app
     volumes:
       - ../frontend:/app
-      - /app/node_modules             # anonymous volume prevents host override
+      - /app/node_modules # anonymous volume prevents host override
     ports:
       - "5173:5173"
     command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0"]
@@ -31,9 +24,10 @@ services:
 
   ml-service:
     volumes:
-      - ../ml-service/app.py:/app/app.py   # hot-reload Python changes
+      - ../ml-service/app.py:/app/app.py # hot-reload Python changes
       - ${MODEL_PATH:-./model.hdf5}:/app/model.hdf5:ro
-    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command:
+      ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 volumes:
   uploads:
