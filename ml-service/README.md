@@ -13,22 +13,40 @@ It is responsible for:
 
 ## Run Locally with Docker
 
-From the project root:
+Run from the project root:
 
 ```bash
 docker build -t kneevision-ml ./ml-service
-docker run -p 8000:8000 kneevision-ml
+docker run --name kneevision-ml-container -p 8000:8000 kneevision-ml
 ```
-or
+or Run from the ml-service folder:
 
 ```bash
 cd ml-service
 docker build -t kneevision-ml .
-docker run -p 8000:8000 kneevision-ml
+docker run --name kneevision-ml-container -p 8000:8000 kneevision-ml
 ```
 Once the container starts successfully, the service will be available at:
 
 `http://localhost:8000`
+
+### Notes
+```bash
+docker run --name kneevision-ml-container -p 8000:8000 kneevision-ml
+```
+ creates a new container from the kneevision-ml image and gives it the custom name kneevision-ml-container, which makes it easier to identify and manage later in Docker Desktop.
+- If you run docker run multiple times without reusing the same container, Docker will create multiple stopped containers.
+- If a container named kneevision-ml-container already exists, start it instead of creating a new one.
+- To restart an existing container:
+  
+```bash
+docker start kneevision-ml-container
+```
+- To stop the container:
+
+```bash
+docker stop kneevision-ml-container
+```
 
 ## Available Endpoints
 
