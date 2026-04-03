@@ -1,12 +1,11 @@
 services:
-  # ── MongoDB ───────────────────────────────────────────────────────────────
+  # ── MongoDB (only for local development) ────────────────────────────────
   mongo:
     image: mongo:7
     restart: unless-stopped
+    profiles: ["local"] # only start in local development
     environment:
       MONGO_INITDB_DATABASE: kneevision
-    ports:
-      - "27017:27017"
     volumes:
       - mongodata:/data/db
     healthcheck:
@@ -15,30 +14,24 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Backend (Node.js / Express) ───────────────────────────────────────────
+  # ── Backend (Node.js / Express) ─────────────────────────────────────────
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      mongo:
-        condition: service_healthy
       ml-service:
         condition: service_started
     environment:
-      # For local dev, point at the mongo container above.
-      # Override with your Atlas URI in production:
-      #   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/kneevision
-      MONGODB_URI: mongodb://mongo:27017/kneevision
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
       PORT: 4000
       ML_SERVICE_URL: http://ml-service:8000
       NODE_ENV: production
     ports:
       - "4000:4000"
     volumes:
-      # Named volume so uploaded files survive container restarts
       - uploads:/app/uploads
     healthcheck:
       test:
@@ -54,15 +47,12 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Frontend (React + Vite built, served by nginx) ────────────────────────
+  # ── Frontend (React + Vite + nginx) ─────────────────────────────────────
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        # During docker build, Vite replaces this env var in the bundle.
-        # If frontend container is behind a reverse-proxy that strips the
-        # host, leave this as the nginx proxy target (empty = same host).
         VITE_BACKEND_URL: ""
     restart: unless-stopped
     depends_on:
@@ -70,7 +60,7 @@ services:
     ports:
       - "80:80"
 
-  # ── ML Service (FastAPI / TensorFlow) ────────────────────────────────────
+  # ── ML Service (FastAPI / TensorFlow) ───────────────────────────────────
   ml-service:
     build:
       context: ../ml-service
@@ -80,15 +70,7 @@ services:
       MODEL_PATH: /app/model.hdf5
       LAST_CONV_LAYER_NAME: global_average_pooling2d
     ports:
-      - "8000:8000" # expose for local debugging; remove in prod
-    # GPU support (optional): uncomment if you have NVIDIA Docker runtime
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+      - "8000:8000"
 
 volumes:
   mongodata:
