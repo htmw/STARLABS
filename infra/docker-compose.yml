@@ -89,7 +89,8 @@ services:
     #         - driver: nvidia
     #           count: 1
     #           capabilities: [gpu]
-
+    volumes:
+      - ../ml-service/model.hdf5:/app/model.hdf5:ro
 volumes:
   mongodata:
   uploads:
