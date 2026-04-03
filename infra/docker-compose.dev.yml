@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev # see backend/Dockerfile.dev
+    volumes:
+      - ../backend/src:/app/src # live code sync
+      - uploads:/app/uploads
+    environment:
+      NODE_ENV: development
+    command: ["node", "--watch", "src/index.js"] # Node 20 built-in watch
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules # anonymous volume prevents host override
+    ports:
+      - "5173:5173"
+    command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0"]
+    environment:
+      VITE_BACKEND_URL: http://localhost:4000
+
+  ml-service:
+    volumes:
+      - ../ml-service/app.py:/app/app.py # hot-reload Python changes
+      - ${MODEL_PATH:-./model.hdf5}:/app/model.hdf5:ro
+    command:
+      ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+volumes:
+  uploads:
