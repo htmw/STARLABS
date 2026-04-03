@@ -49,7 +49,8 @@ STARLABS/
 │
 └── infra/
     ├── docker-compose.yml        # Production: all 4 services
-    └── docker-compose.dev.yml    # Dev override: hot-reload
+    ├── docker-compose.dev.yml    # Dev override: hot-reload
+    └── .env.example              # One more env template (all services)
 ```
 
 ---
