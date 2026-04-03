@@ -1,4 +1,4 @@
-# KneeVision — STARLABS Capstone
+# KneeVision — STARLABS
 
 AI-assisted knee X-ray analysis platform. Classifies knee osteoarthritis severity using the Kellgren-Lawrence (KL) grading scale (Grade 0–4) and produces Grad-CAM heatmap explanations.
 
@@ -44,6 +44,7 @@ STARLABS/
 │   ├── Dockerfile                # Expects model.hdf5 mounted at runtime
 │   ├── .dockerignore
 │   ├── requirements.txt
+│   ├── model.hdf5
 │   └── app.py                   # /predict endpoint + Grad-CAM logic
 │
 └── infra/
@@ -84,7 +85,7 @@ Browser
 ### Prerequisites
 
 - Docker Desktop ≥ 4.x
-- `model.hdf5` file placed at the repo root (or set `MODEL_PATH` in `.env`)
+- `model.hdf5` file placed at the repo ml-service floder
 
 ### 1. Set up environment variables
 
