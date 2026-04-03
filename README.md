@@ -85,7 +85,7 @@ Browser
 ### Prerequisites
 
 - Docker Desktop ≥ 4.x
-- `model.hdf5` file placed at the repo ml-service floder
+- `model.hdf5` file placed at the repo root (or set `MODEL_PATH` in `.env`)
 
 ### 1. Set up environment variables
 
