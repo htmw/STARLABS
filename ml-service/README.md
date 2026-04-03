@@ -9,6 +9,7 @@ It is responsible for:
 - returning confidence, class probabilities, and Grad-CAM explanation output
 
 ## Prerequisite
+Download model from (https://drive.google.com/file/d/1HKJuqN7yRDayQL-RXbdH0FssprPspFZl/view?usp=share_link)
 
 Before running the ML service, make sure the model file is available locally:
 
