@@ -187,8 +187,7 @@ const isSafeKey = (key) => {
   );
 };
 
-const ML_SERVICE_URL =
-  process.env.ML_SERVICE_URL || "http://localhost:8000";
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
 async function callMlPredict(localFilePath, originalName = "image.png") {
   const fileBuffer = await fs.readFile(localFilePath);
@@ -335,6 +334,43 @@ app.post("/api/v1/images", requireAuth, async (req, res) => {
 });
 
 // SCRUM-46: call AI inference service for a saved image
+// app.post("/api/v1/predict", requireAuth, async (req, res) => {
+//   try {
+//     const { fileUrl, originalName } = req.body || {};
+
+//     if (!fileUrl) {
+//       return res.status(400).json({ message: "fileUrl is required." });
+//     }
+
+//     if (
+//       typeof fileUrl !== "string" ||
+//       !fileUrl.startsWith("/uploads/")
+//     ) {
+//       return res.status(400).json({ message: "Invalid fileUrl." });
+//     }
+
+//     const decodedFileUrl = decodeURIComponent(fileUrl);
+//     const filename = path.basename(decodedFileUrl);
+//     const localFilePath = path.join("uploads", filename);
+
+//     try {
+//       await fs.access(localFilePath);
+//     } catch {
+//       return res.status(404).json({ message: "Uploaded file not found." });
+//     }
+
+//     const prediction = await callMlPredict(
+//       localFilePath,
+//       originalName || filename,
+//     );
+
+//     return res.status(200).json(prediction);
+//   } catch (err) {
+//     console.error("Prediction failed:", err);
+//     return res.status(500).json({ message: "Prediction failed." });
+//   }
+// });
+
 app.post("/api/v1/predict", requireAuth, async (req, res) => {
   try {
     const { fileUrl, originalName } = req.body || {};
@@ -343,10 +379,7 @@ app.post("/api/v1/predict", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "fileUrl is required." });
     }
 
-    if (
-      typeof fileUrl !== "string" ||
-      !fileUrl.startsWith("/uploads/")
-    ) {
+    if (typeof fileUrl !== "string" || !fileUrl.startsWith("/uploads/")) {
       return res.status(400).json({ message: "Invalid fileUrl." });
     }
 
@@ -365,7 +398,49 @@ app.post("/api/v1/predict", requireAuth, async (req, res) => {
       originalName || filename,
     );
 
-    return res.status(200).json(prediction);
+    const db = getDb();
+    const imagesCollection = db.collection("images");
+    const predictionsCollection = db.collection("predictions");
+
+    const imageDoc = await imagesCollection.findOne({
+      fileUrl,
+      "uploadedBy.userId": req.user.userId,
+    });
+
+    if (!imageDoc) {
+      return res.status(404).json({ message: "Image not found." });
+    }
+
+    const existing = await predictionsCollection.findOne({
+      imageId: imageDoc._id.toString(),
+      userId: req.user.userId,
+    });
+
+    if (existing) {
+      return res.status(200).json({
+        id: existing._id.toString(),
+        imageId: existing.imageId,
+        ...existing.result,
+      });
+    }
+
+    const predictionDoc = {
+      userId: req.user.userId,
+      imageId: imageDoc._id.toString(),
+      fileUrl: imageDoc.fileUrl,
+
+      result: prediction, // full ML output
+
+      createdAt: new Date().toISOString(),
+    };
+
+    const saved = await predictionsCollection.insertOne(predictionDoc);
+
+    return res.status(200).json({
+      id: saved.insertedId.toString(),
+      imageId: predictionDoc.imageId,
+      ...prediction,
+    });
   } catch (err) {
     console.error("Prediction failed:", err);
     return res.status(500).json({ message: "Prediction failed." });
@@ -409,6 +484,31 @@ app.get("/api/v1/images", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Failed to fetch images." });
+  }
+});
+
+app.get("/api/v1/predictions", requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const predictions = db.collection("predictions");
+
+    const docs = await predictions
+      .find({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const result = docs.map((doc) => ({
+      id: doc._id.toString(),
+      imageId: doc.imageId,
+      fileUrl: doc.fileUrl,
+      result: doc.result,
+      createdAt: doc.createdAt,
+    }));
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Failed to fetch predictions." });
   }
 });
 
