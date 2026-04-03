@@ -49,7 +49,8 @@ STARLABS/
 │
 └── infra/
     ├── docker-compose.yml        # Production: all 4 services
-    └── docker-compose.dev.yml    # Dev override: hot-reload
+    ├── docker-compose.dev.yml    # Dev override: hot-reload
+    └── .env.example              # One more env template (all services)
 ```
 
 ---
@@ -85,7 +86,7 @@ Browser
 ### Prerequisites
 
 - Docker Desktop ≥ 4.x
-- `model.hdf5` file placed at the repo ml-service floder 
+- `model.hdf5` file placed at the repo root (or set `MODEL_PATH` in `.env`)
 
 ### 1. Set up environment variables
 
