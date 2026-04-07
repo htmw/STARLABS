@@ -26,6 +26,7 @@ backend/uploads/
 # Share the file out-of-band (Google Drive, DVC, S3, etc.)
 ml-service/*.hdf5
 ml-service/*.h5
+ml-service/*.pt
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 *.log

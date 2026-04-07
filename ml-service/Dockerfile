@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -15,11 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app.py .
 
-# Copy the model file — must exist at ml-service/model.hdf5 on the host
-COPY model.hdf5 .
-
-ENV MODEL_PATH=/app/model.hdf5
-ENV LAST_CONV_LAYER_NAME=global_average_pooling2d
+# Copy the model file — must exist at ml-service/best_model_b4.pt on the host
+ENV MODEL_PATH=/app/best_model_b4.pt
 
 EXPOSE 8000
 
