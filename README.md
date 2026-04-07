@@ -41,10 +41,10 @@ STARLABS/
 │           └── RegisterForm.tsx
 │
 ├── ml-service/                   # Python FastAPI + TensorFlow inference
-│   ├── Dockerfile                # Expects model.hdf5 mounted at runtime
+│   ├── Dockerfile                # Expects best_model_b4.pt mounted at runtime
 │   ├── .dockerignore
 │   ├── requirements.txt
-│   ├── model.hdf5
+│   ├── best_model_b4.pt
 │   └── app.py                   # /predict endpoint + Grad-CAM logic
 │
 └── infra/
