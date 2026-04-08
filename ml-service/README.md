@@ -14,18 +14,18 @@ Download model from (https://drive.google.com/file/d/1JiEkX4NsJM2RT0d3ZKOfZBiLy7
 Before running the ML service, make sure the model file is available locally:
 
 ```text
-STARLABS/ml-service/model.hdf5
+STARLABS/ml-service/best_model_b4.pt
 ```
 
 The application inside the Docker container looks for the model at:
 
 ```text
-/app/model.hdf5
+/app/best_model_b4.pt
 ```
 
 Note:
 - `/app` is the working directory inside the container, not a folder on your local machine.
-- The recommended local location is `ml-service/model.hdf5`.
+- The recommended local location is `ml-service/best_model_b4.pt`.
 
 ## Run ML Service Only with Docker
 
@@ -34,7 +34,7 @@ From the project root:
 ```bash
 docker build -t kneevision-ml ./ml-service
 docker run --name kneevision-ml-container -p 8000:8000 \
-  -v $(pwd)/ml-service/model.hdf5:/app/model.hdf5:ro \
+  -v $(pwd)/ml-service/best_model_b4.pt:/app/best_model_b4.pt:ro \
   kneevision-ml
 ```
 
@@ -44,7 +44,7 @@ Or from the `ml-service` folder:
 cd ml-service
 docker build -t kneevision-ml .
 docker run --name kneevision-ml-container -p 8000:8000 \
-  -v $(pwd)/model.hdf5:/app/model.hdf5:ro \
+  -v $(pwd)/best_model_b4.pt:/app/best_model_b4.pt:ro \
   kneevision-ml
 ```
 
@@ -78,7 +78,7 @@ For Docker Compose to work correctly, make sure the `ml-service` section in `inf
 
 ```yaml
 volumes:
-  - ../ml-service/model.hdf5:/app/model.hdf5:ro
+  - ../ml-service/best_model_b4.pt:/app/best_model_b4.pt:ro
 ```
 
 Without this mount, the container may not be able to find the model file.
