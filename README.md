@@ -74,8 +74,8 @@ Browser
         │ POST /predict (multipart)
         ▼
 ┌─────────────┐   :8000
-│ ml-service  │  (FastAPI + TensorFlow)
-│  (Python)   │──────────────▶ model.hdf5 (bind-mounted volume)
+│ ml-service  │  (FastAPI + PyTorch)
+│  (Python)   │──────────────▶ best_model_b4.pt (bind-mounted volume)
 └─────────────┘
 ```
 
@@ -86,7 +86,7 @@ Browser
 ### Prerequisites
 
 - Docker Desktop ≥ 4.x
-- `model.hdf5` file placed at the repo root (or set `MODEL_PATH` in `.env`)
+- `best_model_b4.pt` file placed at the repo root (or set `MODEL_PATH` in `.env`)
 
 ### 1. Set up environment variables
 
@@ -137,7 +137,7 @@ docker run -p 27017:27017 mongo:7
 ```bash
 cd ml-service
 pip install -r requirements.txt
-MODEL_PATH=/path/to/model.hdf5 uvicorn app:app --reload --port 8000
+MODEL_PATH=/path/to/best_model_b4.pt uvicorn app:app --reload --port 8000
 ```
 
 ### Backend
@@ -161,15 +161,15 @@ npm run dev            # Vite on :5173
 
 ## Model File
 
-The `model.hdf5` file is excluded from git (it is large). Distribute it separately.
+The `best_model_b4.pt` file is excluded from git (it is large). Distribute it separately.
 
-**For Docker:** place `model.hdf5` next to `infra/docker-compose.yml` and set in `.env`:
+**For Docker:** place `best_model_b4.pt` next to `infra/docker-compose.yml` and set in `.env`:
 
 ```
 MODEL_PATH=./model.hdf5
 ```
 
-The compose file bind-mounts it read-only into the `ml-service` container at `/app/model.hdf5`.
+The compose file bind-mounts it read-only into the `ml-service` container at `/app/best_model_b4.pt`.
 
 ---
 
@@ -239,8 +239,8 @@ DICOM files (`.dcm`) are stored as-is without preprocessing.
 | `JWT_SECRET`           | backend    | Secret for signing JWTs (use a strong random str) |
 | `PORT`                 | backend    | Backend HTTP port (default: 4000)                 |
 | `ML_SERVICE_URL`       | backend    | URL of the FastAPI service                        |
-| `MODEL_PATH`           | ml-service | Path to model.hdf5 inside container               |
-| `LAST_CONV_LAYER_NAME` | ml-service | Grad-CAM target layer name                        |
+| `MODEL_PATH`           | ml-service | Path to best_model_b4.pt inside container         |
+<!-- | `LAST_CONV_LAYER_NAME` | ml-service | Grad-CAM target layer name                        | -->
 | `VITE_BACKEND_URL`     | frontend   | Backend URL injected at Vite build time           |
 
 ---
@@ -251,7 +251,7 @@ DICOM files (`.dcm`) are stored as-is without preprocessing.
 | ---------- | ----------------------------------------------- |
 | Frontend   | React 19, TypeScript, Vite, react-dropzone      |
 | Backend    | Node.js 20, Express 5, MongoDB, sharp, bcryptjs |
-| ML Service | Python 3.10, FastAPI, TensorFlow 2.12, Grad-CAM |
+| ML Service | Python 3.10, FastAPI, PyTorch, Grad-CAM |
 | Database   | MongoDB Atlas (prod) / MongoDB 7 Docker (dev)   |
 | Serving    | nginx 1.27-alpine                               |
 | Container  | Docker + Docker Compose                         |
