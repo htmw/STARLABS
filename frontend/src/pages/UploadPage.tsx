@@ -6,6 +6,7 @@ import type { AnalysisResult } from "./ResultsPage";
 type UploadPageProps = {
   onLogout: () => void;
   onAnalysisReady: (result: AnalysisResult) => void;
+  onGoToDashboard: () => void;
 };
 
 const BACKEND = "http://localhost:4000";
@@ -198,7 +199,11 @@ function compareByNewest(a?: string, b?: string) {
   return getTimeValue(b) - getTimeValue(a);
 }
 
-function UploadPage({ onLogout, onAnalysisReady }: UploadPageProps) {
+function UploadPage({
+    onLogout,
+    onAnalysisReady,
+    onGoToDashboard,
+  }: UploadPageProps) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -328,9 +333,15 @@ function UploadPage({ onLogout, onAnalysisReady }: UploadPageProps) {
       <div className="upload-card">
         <div className="upload-header">
           <h1>KneeVision</h1>
-          <button className="secondary-button" onClick={onLogout}>
-            Logout
-          </button>
+
+          <div style={{ display: "flex", gap: "0.75rem" }}>
+            <button className="secondary-button" onClick={onGoToDashboard}>
+              Dashboard
+            </button>
+            <button className="secondary-button" onClick={onLogout}>
+              Logout
+            </button>
+          </div>
         </div>
 
         <p className="upload-subtitle">Upload and review knee X-ray images</p>

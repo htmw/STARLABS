@@ -5,23 +5,24 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import UploadPage from "./pages/UploadPage";
 import ResultsPage, { type AnalysisResult } from "./pages/ResultsPage";
+import DashboardPage from "./pages/DashboardPage";
 
 type AuthMode = "landing" | "login" | "register";
-type AppView = "upload" | "results";
+type AppView = "dashboard" | "upload" | "results";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     Boolean(localStorage.getItem("token")),
   );
   const [authMode, setAuthMode] = useState<AuthMode>("landing");
-  const [appView, setAppView] = useState<AppView>("upload");
+  const [appView, setAppView] = useState<AppView>("dashboard");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
     null,
   );
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
-    setAppView("upload");
+    setAppView("dashboard");
   };
 
   const handleLogout = () => {
@@ -29,7 +30,7 @@ function App() {
     localStorage.removeItem("user");
     setIsAuthenticated(false);
     setAuthMode("landing");
-    setAppView("upload");
+    setAppView("dashboard");
     setAnalysisResult(null);
   };
 
@@ -46,14 +47,31 @@ function App() {
     setAppView("upload");
   };
 
-  // Already authenticated → go straight to upload
+  const handleGoToUpload = () => {
+    setAppView("upload");
+  };
+
+  const handleGoToDashboard = () => {
+    setAppView("dashboard");
+  };
+
   if (isAuthenticated) {
     if (appView === "results" && analysisResult) {
       return (
         <ResultsPage
           result={analysisResult}
           onBackToUpload={handleBackToUpload}
+          onBackToDashboard={handleGoToDashboard}
           onLogout={handleLogout}
+        />
+      );
+    }
+
+    if (appView === "dashboard") {
+      return (
+        <DashboardPage
+          onLogout={handleLogout}
+          onGoToUpload={handleGoToUpload}
         />
       );
     }
@@ -62,6 +80,7 @@ function App() {
       <UploadPage
         onLogout={handleLogout}
         onAnalysisReady={handleAnalysisReady}
+        onGoToDashboard={handleGoToDashboard}
       />
     );
   }
