@@ -15,6 +15,17 @@ type DashboardImage = {
   createdAt?: string;
 };
 
+type SavedPrediction = {
+  imageId: string;
+  fileUrl: string;
+  result: {
+    confidence?: number;
+    grade?: string;
+    severityLabel?: string;
+  };
+  createdAt?: string;
+};
+
 const BACKEND = "http://localhost:4000";
 
 function authHeader(): Record<string, string> {
@@ -31,27 +42,52 @@ function DashboardPage({
   const [images, setImages] = useState<DashboardImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  const [avgConfidence, setAvgConfidence] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const fetchDashboardData = async () => {
       try {
         setFetchError("");
 
-        const res = await fetch(`${BACKEND}/api/v1/images`, {
-          headers: authHeader(),
-        });
+        const [imagesRes, predictionsRes] = await Promise.all([
+          fetch(`${BACKEND}/api/v1/images`, {
+            headers: authHeader(),
+          }),
+          fetch(`${BACKEND}/api/v1/predictions`, {
+            headers: authHeader(),
+          }),
+        ]);
 
-        if (res.status === 401) {
+        if (imagesRes.status === 401 || predictionsRes.status === 401) {
           onLogout();
           return;
         }
 
-        if (!res.ok) {
-          throw new Error(`Failed to load dashboard data (${res.status})`);
+        if (!imagesRes.ok) {
+          throw new Error(`Failed to load dashboard images (${imagesRes.status})`);
         }
 
-        const data: DashboardImage[] = await res.json();
-        setImages(data);
+        if (!predictionsRes.ok) {
+          throw new Error(
+            `Failed to load dashboard predictions (${predictionsRes.status})`,
+          );
+        }
+
+        const imageData: DashboardImage[] = await imagesRes.json();
+        const predictionData: SavedPrediction[] = await predictionsRes.json();
+
+        setImages(imageData);
+
+        const confidenceValues = predictionData
+          .map((prediction) => prediction.result?.confidence)
+          .filter((value): value is number => typeof value === "number");
+
+        if (confidenceValues.length > 0) {
+          const total = confidenceValues.reduce((sum, value) => sum + value, 0);
+          setAvgConfidence(total / confidenceValues.length);
+        } else {
+          setAvgConfidence(null);
+        }
       } catch (err: unknown) {
         const message =
           err instanceof Error
@@ -63,7 +99,7 @@ function DashboardPage({
       }
     };
 
-    fetchImages();
+    fetchDashboardData();
   }, [onLogout]);
 
   const totalUploads = images.length;
@@ -99,7 +135,7 @@ function DashboardPage({
 
               <div className="dashboard-stat-card">
                 <p className="dashboard-stat-label">Avg Confidence Score</p>
-                <h2>N/A</h2>
+                <h2>{avgConfidence !== null ? `${avgConfidence.toFixed(2)}%` : "N/A"}</h2>
               </div>
 
               <div className="dashboard-stat-card">

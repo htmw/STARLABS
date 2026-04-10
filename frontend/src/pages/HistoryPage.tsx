@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
+import type { GalleryImage } from "../components/ImageGallery";
 
 type HistoryPageProps = {
   onLogout: () => void;
@@ -18,6 +18,33 @@ type FilterOption =
   | "month"
   | "within-6-months"
   | "older-6-months";
+type GradeFilterOption =
+  | "all-grades"
+  | "Grade 0"
+  | "Grade 1"
+  | "Grade 2"
+  | "Grade 3"
+  | "Grade 4";
+
+type HistoryImage = GalleryImage & {
+  grade?: string;
+  confidence?: number;
+  severityLabel?: string;
+};
+
+type SavedPrediction = {
+  imageId: string;
+  fileUrl: string;
+  result: {
+    grade: string;
+    confidence: number;
+    severityLabel?: string;
+    probabilities?: { label: string; value: number }[];
+    summary?: string;
+    heatmapUrl?: string;
+  };
+  createdAt?: string;
+};
 
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
@@ -188,37 +215,63 @@ function HistoryPage({
   onGoToUpload,
   onOpenHistoryImage,
 }: HistoryPageProps) {
-  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [images, setImages] = useState<HistoryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
+  const [gradeFilter, setGradeFilter] = useState<GradeFilterOption>("all-grades");
 
-  const fetchImages = useCallback(async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setFetchError("");
 
-      const res = await fetch(`${BACKEND}/api/v1/images`, {
-        headers: authHeader(),
-      });
+      const [imagesRes, predictionsRes] = await Promise.all([
+        fetch(`${BACKEND}/api/v1/images`, {
+          headers: authHeader(),
+        }),
+        fetch(`${BACKEND}/api/v1/predictions`, {
+          headers: authHeader(),
+        }),
+      ]);
 
-      if (res.status === 401) {
+      if (imagesRes.status === 401 || predictionsRes.status === 401) {
         onLogout();
         return;
       }
 
-      if (!res.ok) throw new Error(`Failed to load history (${res.status})`);
+      if (!imagesRes.ok) {
+        throw new Error(`Failed to load images (${imagesRes.status})`);
+      }
 
-      const data = await res.json();
+      if (!predictionsRes.ok) {
+        throw new Error(
+          `Failed to load predictions (${predictionsRes.status})`,
+        );
+      }
 
-      const mapped: GalleryImage[] = data.map((img: any) => ({
-        id: img.id,
-        url: `${BACKEND}${img.fileUrl}`,
-        fileUrl: img.fileUrl,
-        originalName: img.originalName,
-        contentType: img.contentType,
-        createdAt: img.createdAt,
-      }));
+      const imageData = await imagesRes.json();
+      const predictionData: SavedPrediction[] = await predictionsRes.json();
+
+      const predictionMap = new Map(
+        predictionData.map((prediction) => [prediction.imageId, prediction]),
+      );
+
+      const mapped: HistoryImage[] = imageData.map((img: any) => {
+        const savedPrediction = predictionMap.get(img.id);
+
+        return {
+          id: img.id,
+          url: `${BACKEND}${img.fileUrl}`,
+          fileUrl: img.fileUrl,
+          originalName: img.originalName,
+          contentType: img.contentType,
+          createdAt: img.createdAt,
+          grade: savedPrediction?.result.grade,
+          confidence: savedPrediction?.result.confidence,
+          severityLabel: savedPrediction?.result.severityLabel,
+        };
+      });
 
       setImages(mapped);
     } catch (err: unknown) {
@@ -231,8 +284,8 @@ function HistoryPage({
   }, [onLogout]);
 
   useEffect(() => {
-    fetchImages();
-  }, [fetchImages]);
+    fetchHistory();
+  }, [fetchHistory]);
 
   const displayedImages = useMemo(() => {
     let next = [...images];
@@ -247,6 +300,10 @@ function HistoryPage({
       next = next.filter((img) => isWithinLast6Months(img.createdAt));
     } else if (filterBy === "older-6-months") {
       next = next.filter((img) => !isWithinLast6Months(img.createdAt));
+    }
+
+    if (gradeFilter !== "all-grades") {
+        next = next.filter((img) => img.grade === gradeFilter);
     }
 
     if (sortBy === "newest") {
@@ -266,7 +323,7 @@ function HistoryPage({
     }
 
     return next;
-  }, [images, sortBy, filterBy]);
+  }, [images, sortBy, filterBy, gradeFilter]);
 
   return (
     <main className="upload-page">
@@ -310,7 +367,23 @@ function HistoryPage({
                 <option value="older-6-months">Older than 6 months</option>
               </select>
             </div>
-
+            <div className="upload-toolbar-group">
+                <label htmlFor="history-grade-filter">Grade</label>
+                <select
+                    id="history-grade-filter"
+                    value={gradeFilter}
+                    onChange={(e) =>
+                    setGradeFilter(e.target.value as GradeFilterOption)
+                    }
+                >
+                    <option value="all-grades">All Grades</option>
+                    <option value="Grade 0">Grade 0</option>
+                    <option value="Grade 1">Grade 1</option>
+                    <option value="Grade 2">Grade 2</option>
+                    <option value="Grade 3">Grade 3</option>
+                    <option value="Grade 4">Grade 4</option>
+                </select>
+            </div>
             <div className="upload-toolbar-group">
               <label htmlFor="history-sort">Sort</label>
               <select
@@ -341,10 +414,49 @@ function HistoryPage({
             No analyses match the current filter.
           </p>
         ) : (
-          <ImageGallery
-            images={displayedImages}
-            onImageClick={onOpenHistoryImage}
-          />
+          <div className="history-grid">
+            {displayedImages.map((img) => (
+              <button
+                key={img.id}
+                type="button"
+                className="history-card"
+                onClick={() => onOpenHistoryImage(img)}
+              >
+                <div className="history-card-image">
+                  {img.url ? (
+                    <img src={img.url} alt={img.originalName || "History image"} />
+                  ) : (
+                    <div className="gallery-card-empty">No preview</div>
+                  )}
+                </div>
+
+                <div className="history-card-body">
+                  <p className="history-card-name">
+                    {img.originalName || "Uploaded image"}
+                  </p>
+                  <p className="history-card-date">
+                    {img.createdAt
+                      ? new Date(img.createdAt).toLocaleString()
+                      : "Unknown upload time"}
+                  </p>
+
+                  <div className="history-badges">
+                    <span className="history-badge">
+                      {img.grade || "No grade"}
+                    </span>
+                    <span className="history-badge">
+                      {typeof img.confidence === "number"
+                        ? `${img.confidence.toFixed(2)}%`
+                        : "N/A"}
+                    </span>
+                    <span className="history-badge">
+                      {img.severityLabel || "Unknown"}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </main>

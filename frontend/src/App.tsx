@@ -135,6 +135,7 @@ function App() {
           result={analysisResult}
           onBackToUpload={handleBackToUpload}
           onBackToDashboard={handleGoToDashboard}
+          onGoToHistory={handleGoToHistory}
           onLogout={handleLogout}
         />
       );

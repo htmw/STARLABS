@@ -19,6 +19,7 @@ type ResultsPageProps = {
   result: AnalysisResult;
   onBackToUpload: () => void;
   onBackToDashboard: () => void;
+  onGoToHistory: () => void;
   onLogout: () => void;
 };
 
@@ -26,6 +27,7 @@ function ResultsPage({
   result,
   onBackToUpload,
   onBackToDashboard,
+  onGoToHistory,
   onLogout,
 }: ResultsPageProps) {
   const topProbability =
@@ -53,8 +55,11 @@ function ResultsPage({
             <button className="secondary-button" onClick={onBackToDashboard}>
               Dashboard
             </button>
+            <button className="secondary-button" onClick={onGoToHistory}>
+              History
+            </button>
             <button className="secondary-button" onClick={onBackToUpload}>
-              Back to Upload
+              Upload
             </button>
             <button className="secondary-button" onClick={onLogout}>
               Logout
