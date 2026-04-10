@@ -7,8 +7,21 @@ import UploadPage from "./pages/UploadPage";
 import ResultsPage, { type AnalysisResult } from "./pages/ResultsPage";
 import DashboardPage from "./pages/DashboardPage";
 
+const BACKEND = "http://localhost:4000";
+
+function authHeader(): Record<string, string> {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 type AuthMode = "landing" | "login" | "register";
 type AppView = "dashboard" | "upload" | "results";
+
+type DashboardImageRef = {
+  id: string;
+  fileUrl: string;
+  originalName?: string;
+};
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -55,6 +68,57 @@ function App() {
     setAppView("dashboard");
   };
 
+  const handleOpenRecentUpload = async (image: DashboardImageRef) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/v1/predictions`, {
+        headers: authHeader(),
+      });
+
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(
+          errorData?.message || `Failed to load predictions (${res.status})`,
+        );
+      }
+
+      const predictions = await res.json();
+
+      const matched = predictions.find(
+        (prediction: {
+          imageId: string;
+          fileUrl: string;
+          result: AnalysisResult;
+        }) => prediction.imageId === image.id,
+      );
+
+      if (!matched) {
+        throw new Error("No saved prediction found for this upload.");
+      }
+
+      const result: AnalysisResult = {
+        imageUrl: `${BACKEND}${matched.fileUrl}`,
+        fileName: image.originalName || "Uploaded image",
+        grade: matched.result.grade,
+        confidence: matched.result.confidence,
+        probabilities: matched.result.probabilities || [],
+        summary: matched.result.summary || "",
+        severityLabel: matched.result.severityLabel || "Unknown",
+        heatmapUrl: matched.result.heatmapUrl,
+        isMock: false,
+      };
+
+      setAnalysisResult(result);
+      setAppView("results");
+    } catch (err) {
+      console.error("Failed to open recent upload:", err);
+    }
+  };
+
   if (isAuthenticated) {
     if (appView === "results" && analysisResult) {
       return (
@@ -72,6 +136,7 @@ function App() {
         <DashboardPage
           onLogout={handleLogout}
           onGoToUpload={handleGoToUpload}
+          onOpenRecentUpload={handleOpenRecentUpload}
         />
       );
     }

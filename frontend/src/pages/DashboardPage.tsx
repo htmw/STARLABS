@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 type DashboardPageProps = {
   onLogout: () => void;
   onGoToUpload: () => void;
+  onOpenRecentUpload: (image: DashboardImage) => void;
 };
 
 type DashboardImage = {
@@ -20,7 +21,11 @@ function authHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function DashboardPage({ onLogout, onGoToUpload }: DashboardPageProps) {
+function DashboardPage({
+  onLogout,
+  onGoToUpload,
+  onOpenRecentUpload,
+}: DashboardPageProps) {
   const [images, setImages] = useState<DashboardImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -126,7 +131,12 @@ function DashboardPage({ onLogout, onGoToUpload }: DashboardPageProps) {
               ) : (
                 <div className="dashboard-recent-list">
                   {recentUploads.map((img) => (
-                    <div key={img.id} className="dashboard-recent-card">
+                    <button
+                      key={img.id}
+                      type="button"
+                      className="dashboard-recent-card dashboard-recent-button"
+                      onClick={() => onOpenRecentUpload(img)}
+                    >
                       <div className="dashboard-recent-thumb">
                         <img
                           src={`${BACKEND}${img.fileUrl}`}
@@ -144,7 +154,7 @@ function DashboardPage({ onLogout, onGoToUpload }: DashboardPageProps) {
                             : "Unknown upload time"}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
