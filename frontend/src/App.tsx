@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import UploadPage from "./pages/UploadPage";
 import ResultsPage, { type AnalysisResult } from "./pages/ResultsPage";
 import DashboardPage from "./pages/DashboardPage";
+import HistoryPage from "./pages/HistoryPage";
 
 const BACKEND = "http://localhost:4000";
 
@@ -15,7 +16,7 @@ function authHeader(): Record<string, string> {
 }
 
 type AuthMode = "landing" | "login" | "register";
-type AppView = "dashboard" | "upload" | "results";
+type AppView = "dashboard" | "upload" | "results" | "history";
 
 type PredictionImageRef = {
   id?: string;
@@ -66,6 +67,10 @@ function App() {
 
   const handleGoToDashboard = () => {
     setAppView("dashboard");
+  };
+
+  const handleGoToHistory = () => {
+    setAppView("history");
   };
 
   const handleOpenSavedAnalysis = async (image: PredictionImageRef) => {
@@ -140,7 +145,19 @@ function App() {
         <DashboardPage
           onLogout={handleLogout}
           onGoToUpload={handleGoToUpload}
+          onGoToHistory={handleGoToHistory}
           onOpenRecentUpload={handleOpenSavedAnalysis}
+        />
+      );
+    }
+
+    if (appView === "history") {
+      return (
+        <HistoryPage
+          onLogout={handleLogout}
+          onGoToDashboard={handleGoToDashboard}
+          onGoToUpload={handleGoToUpload}
+          onOpenHistoryImage={handleOpenSavedAnalysis}
         />
       );
     }

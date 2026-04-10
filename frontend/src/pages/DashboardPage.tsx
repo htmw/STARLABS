@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 type DashboardPageProps = {
   onLogout: () => void;
   onGoToUpload: () => void;
+  onGoToHistory: () => void;
   onOpenRecentUpload: (image: DashboardImage) => void;
 };
 
@@ -24,6 +25,7 @@ function authHeader(): Record<string, string> {
 function DashboardPage({
   onLogout,
   onGoToUpload,
+  onGoToHistory,
   onOpenRecentUpload,
 }: DashboardPageProps) {
   const [images, setImages] = useState<DashboardImage[]>([]);
@@ -112,7 +114,7 @@ function DashboardPage({
                 <button className="primary-button" onClick={onGoToUpload}>
                   Upload New Image
                 </button>
-                <button className="secondary-button" disabled>
+                <button className="secondary-button" onClick={onGoToHistory}>
                   View History
                 </button>
                 <button className="secondary-button" disabled>
