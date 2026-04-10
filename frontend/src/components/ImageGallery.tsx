@@ -4,15 +4,17 @@ export type GalleryImage = {
   fileUrl?: string;
   title?: string;
   originalName?: string;
+  contentType?: string;
+  createdAt?: string;
 };
 
 type Props = {
   images: GalleryImage[];
 };
 
-export default function ImageGallery({ images }: Props) {
+function ImageGallery({ images }: Props) {
   if (!images || images.length === 0) {
-    return <p className="upload-gallery-empty">No images to display.</p>;
+    return null;
   }
 
   return (
@@ -22,16 +24,24 @@ export default function ImageGallery({ images }: Props) {
         const label = img.title || img.originalName || "Image";
 
         return (
-          <div key={img.id || src || label} className="gallery-card">
+          <div
+            key={img.id || `${label}-${src}`}
+            className="gallery-card"
+          >
             {src ? (
-              <img src={src} alt={label} loading="lazy" />
+              <img src={src} alt={label} />
             ) : (
               <div className="gallery-card-empty">No preview</div>
             )}
-            <div className="gallery-card-label">{label}</div>
+
+            <div className="gallery-card-label" title={label}>
+              {label}
+            </div>
           </div>
         );
       })}
     </div>
   );
 }
+
+export default ImageGallery;
