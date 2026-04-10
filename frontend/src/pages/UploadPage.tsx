@@ -7,6 +7,7 @@ type UploadPageProps = {
   onLogout: () => void;
   onAnalysisReady: (result: AnalysisResult) => void;
   onGoToDashboard: () => void;
+  onOpenGalleryImage: (image: GalleryImage) => void;
 };
 
 const BACKEND = "http://localhost:4000";
@@ -200,10 +201,11 @@ function compareByNewest(a?: string, b?: string) {
 }
 
 function UploadPage({
-    onLogout,
-    onAnalysisReady,
-    onGoToDashboard,
-  }: UploadPageProps) {
+  onLogout,
+  onAnalysisReady,
+  onGoToDashboard,
+  onOpenGalleryImage,
+}: UploadPageProps) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -404,7 +406,10 @@ function UploadPage({
             No images match the current filter.
           </p>
         ) : (
-          <ImageGallery images={displayedImages} />
+          <ImageGallery
+            images={displayedImages}
+            onImageClick={onOpenGalleryImage}
+          />
         )}
       </div>
     </main>

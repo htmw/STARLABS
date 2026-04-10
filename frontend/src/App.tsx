@@ -17,9 +17,9 @@ function authHeader(): Record<string, string> {
 type AuthMode = "landing" | "login" | "register";
 type AppView = "dashboard" | "upload" | "results";
 
-type DashboardImageRef = {
-  id: string;
-  fileUrl: string;
+type PredictionImageRef = {
+  id?: string;
+  fileUrl?: string;
   originalName?: string;
 };
 
@@ -68,8 +68,12 @@ function App() {
     setAppView("dashboard");
   };
 
-  const handleOpenRecentUpload = async (image: DashboardImageRef) => {
+  const handleOpenSavedAnalysis = async (image: PredictionImageRef) => {
     try {
+      if (!image.id) {
+        throw new Error("Image id is missing.");
+      }
+
       const res = await fetch(`${BACKEND}/api/v1/predictions`, {
         headers: authHeader(),
       });
@@ -115,7 +119,7 @@ function App() {
       setAnalysisResult(result);
       setAppView("results");
     } catch (err) {
-      console.error("Failed to open recent upload:", err);
+      console.error("Failed to open saved analysis:", err);
     }
   };
 
@@ -136,7 +140,7 @@ function App() {
         <DashboardPage
           onLogout={handleLogout}
           onGoToUpload={handleGoToUpload}
-          onOpenRecentUpload={handleOpenRecentUpload}
+          onOpenRecentUpload={handleOpenSavedAnalysis}
         />
       );
     }
@@ -146,6 +150,7 @@ function App() {
         onLogout={handleLogout}
         onAnalysisReady={handleAnalysisReady}
         onGoToDashboard={handleGoToDashboard}
+        onOpenGalleryImage={handleOpenSavedAnalysis}
       />
     );
   }
