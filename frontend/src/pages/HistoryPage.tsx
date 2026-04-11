@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import ImageUploader from "../components/ImageUploader";
-import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
-import type { AnalysisResult } from "./ResultsPage";
+import type { GalleryImage } from "../components/ImageGallery";
 
-type UploadPageProps = {
+type HistoryPageProps = {
   onLogout: () => void;
-  onAnalysisReady: (result: AnalysisResult) => void;
   onGoToDashboard: () => void;
-  onOpenGalleryImage: (image: GalleryImage) => void;
+  onGoToUpload: () => void;
+  onOpenHistoryImage: (image: GalleryImage) => void;
 };
 
 const BACKEND = "http://localhost:4000";
@@ -20,26 +18,37 @@ type FilterOption =
   | "month"
   | "within-6-months"
   | "older-6-months";
+type GradeFilterOption =
+  | "all-grades"
+  | "Grade 0"
+  | "Grade 1"
+  | "Grade 2"
+  | "Grade 3"
+  | "Grade 4";
+
+type HistoryImage = GalleryImage & {
+  grade?: string;
+  confidence?: number;
+  severityLabel?: string;
+};
+
+type SavedPrediction = {
+  imageId: string;
+  fileUrl: string;
+  result: {
+    grade: string;
+    confidence: number;
+    severityLabel?: string;
+    probabilities?: { label: string; value: number }[];
+    summary?: string;
+    heatmapUrl?: string;
+  };
+  createdAt?: string;
+};
 
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-function buildRealAnalysis(savedItem: any, prediction: any): AnalysisResult {
-  return {
-    imageUrl: `${BACKEND}${savedItem.fileUrl}`,
-    fileName: savedItem.originalName || "Uploaded image",
-    grade: prediction.grade,
-    confidence: prediction.confidence,
-    probabilities: prediction.probabilities || [],
-    severityLabel: prediction.severityLabel || "Unknown",
-    summary:
-      prediction.summary ||
-      `The model predicts ${prediction.grade} with ${prediction.confidence}% confidence.`,
-    heatmapUrl: prediction.heatmapUrl,
-    isMock: false,
-  };
 }
 
 function getTimeValue(dateString?: string) {
@@ -55,7 +64,7 @@ function getStartOfToday() {
 
 function getStartOfWeek() {
   const today = getStartOfToday();
-  const day = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const day = today.getDay();
   const diffToMonday = day === 0 ? 6 : day - 1;
   const start = new Date(today);
   start.setDate(today.getDate() - diffToMonday);
@@ -200,101 +209,83 @@ function compareByNewest(a?: string, b?: string) {
   return getTimeValue(b) - getTimeValue(a);
 }
 
-function UploadPage({
+function HistoryPage({
   onLogout,
-  onAnalysisReady,
   onGoToDashboard,
-  onOpenGalleryImage,
-}: UploadPageProps) {
-  const [images, setImages] = useState<GalleryImage[]>([]);
+  onGoToUpload,
+  onOpenHistoryImage,
+}: HistoryPageProps) {
+  const [images, setImages] = useState<HistoryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  const [predicting, setPredicting] = useState(false);
-
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
+  const [gradeFilter, setGradeFilter] = useState<GradeFilterOption>("all-grades");
 
-  const fetchImages = useCallback(async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setFetchError("");
 
-      const res = await fetch(`${BACKEND}/api/v1/images`, {
-        headers: authHeader(),
-      });
+      const [imagesRes, predictionsRes] = await Promise.all([
+        fetch(`${BACKEND}/api/v1/images`, {
+          headers: authHeader(),
+        }),
+        fetch(`${BACKEND}/api/v1/predictions`, {
+          headers: authHeader(),
+        }),
+      ]);
 
-      if (res.status === 401) {
+      if (imagesRes.status === 401 || predictionsRes.status === 401) {
         onLogout();
         return;
       }
 
-      if (!res.ok) throw new Error(`Failed to load images (${res.status})`);
+      if (!imagesRes.ok) {
+        throw new Error(`Failed to load images (${imagesRes.status})`);
+      }
 
-      const data = await res.json();
+      if (!predictionsRes.ok) {
+        throw new Error(
+          `Failed to load predictions (${predictionsRes.status})`,
+        );
+      }
 
-      const mapped: GalleryImage[] = data.map((img: any) => ({
-        id: img.id,
-        url: `${BACKEND}${img.fileUrl}`,
-        fileUrl: img.fileUrl,
-        originalName: img.originalName,
-        contentType: img.contentType,
-        createdAt: img.createdAt,
-      }));
+      const imageData = await imagesRes.json();
+      const predictionData: SavedPrediction[] = await predictionsRes.json();
+
+      const predictionMap = new Map(
+        predictionData.map((prediction) => [prediction.imageId, prediction]),
+      );
+
+      const mapped: HistoryImage[] = imageData.map((img: any) => {
+        const savedPrediction = predictionMap.get(img.id);
+
+        return {
+          id: img.id,
+          url: `${BACKEND}${img.fileUrl}`,
+          fileUrl: img.fileUrl,
+          originalName: img.originalName,
+          contentType: img.contentType,
+          createdAt: img.createdAt,
+          grade: savedPrediction?.result.grade,
+          confidence: savedPrediction?.result.confidence,
+          severityLabel: savedPrediction?.result.severityLabel,
+        };
+      });
 
       setImages(mapped);
-    } catch (err: any) {
-      setFetchError(err.message || "Could not load gallery.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Could not load history.";
+      setFetchError(message);
     } finally {
       setLoading(false);
     }
   }, [onLogout]);
 
   useEffect(() => {
-    fetchImages();
-  }, [fetchImages]);
-
-  const handleUploadSuccess = async (items: any[]) => {
-    await fetchImages();
-
-    if (items?.length > 0) {
-      const newest = items[0];
-
-      try {
-        setPredicting(true);
-
-        const res = await fetch(`${BACKEND}/api/v1/predict`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeader(),
-          },
-          body: JSON.stringify({
-            fileUrl: newest.fileUrl,
-            originalName: newest.originalName,
-          }),
-        });
-
-        if (res.status === 401) {
-          onLogout();
-          return;
-        }
-
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => null);
-          throw new Error(
-            errorData?.message || `Prediction failed (${res.status})`,
-          );
-        }
-
-        const prediction = await res.json();
-        const result = buildRealAnalysis(newest, prediction);
-        onAnalysisReady(result);
-      } catch (err: any) {
-        setFetchError(err.message || "Prediction failed.");
-      } finally {
-        setPredicting(false);
-      }
-    }
-  };
+    fetchHistory();
+  }, [fetchHistory]);
 
   const displayedImages = useMemo(() => {
     let next = [...images];
@@ -309,6 +300,10 @@ function UploadPage({
       next = next.filter((img) => isWithinLast6Months(img.createdAt));
     } else if (filterBy === "older-6-months") {
       next = next.filter((img) => !isWithinLast6Months(img.createdAt));
+    }
+
+    if (gradeFilter !== "all-grades") {
+        next = next.filter((img) => img.grade === gradeFilter);
     }
 
     if (sortBy === "newest") {
@@ -328,17 +323,20 @@ function UploadPage({
     }
 
     return next;
-  }, [images, sortBy, filterBy]);
+  }, [images, sortBy, filterBy, gradeFilter]);
 
   return (
     <main className="upload-page">
       <div className="upload-card">
         <div className="upload-header">
-          <h1>KneeVision</h1>
+          <h1>KneeVision History</h1>
 
           <div style={{ display: "flex", gap: "0.75rem" }}>
             <button className="secondary-button" onClick={onGoToDashboard}>
               Dashboard
+            </button>
+            <button className="secondary-button" onClick={onGoToUpload}>
+              Upload
             </button>
             <button className="secondary-button" onClick={onLogout}>
               Logout
@@ -346,24 +344,18 @@ function UploadPage({
           </div>
         </div>
 
-        <p className="upload-subtitle">Upload and review knee X-ray images</p>
-
-        <ImageUploader onUploadSuccess={handleUploadSuccess} />
-
-        {predicting ? (
-          <p className="upload-gallery-empty" style={{ marginTop: "16px" }}>
-            Running AI analysis...
-          </p>
-        ) : null}
+        <p className="upload-subtitle">
+          Browse past uploads and reopen saved analysis results.
+        </p>
 
         <div className="upload-section-heading-row">
-          <h2 className="upload-section-title">Gallery</h2>
+          <h2 className="upload-section-title">Analysis History</h2>
 
           <div className="upload-gallery-toolbar">
             <div className="upload-toolbar-group">
-              <label htmlFor="gallery-filter">Filter</label>
+              <label htmlFor="history-filter">Filter</label>
               <select
-                id="gallery-filter"
+                id="history-filter"
                 value={filterBy}
                 onChange={(e) => setFilterBy(e.target.value as FilterOption)}
               >
@@ -375,11 +367,27 @@ function UploadPage({
                 <option value="older-6-months">Older than 6 months</option>
               </select>
             </div>
-
             <div className="upload-toolbar-group">
-              <label htmlFor="gallery-sort">Sort</label>
+                <label htmlFor="history-grade-filter">Grade</label>
+                <select
+                    id="history-grade-filter"
+                    value={gradeFilter}
+                    onChange={(e) =>
+                    setGradeFilter(e.target.value as GradeFilterOption)
+                    }
+                >
+                    <option value="all-grades">All Grades</option>
+                    <option value="Grade 0">Grade 0</option>
+                    <option value="Grade 1">Grade 1</option>
+                    <option value="Grade 2">Grade 2</option>
+                    <option value="Grade 3">Grade 3</option>
+                    <option value="Grade 4">Grade 4</option>
+                </select>
+            </div>
+            <div className="upload-toolbar-group">
+              <label htmlFor="history-sort">Sort</label>
               <select
-                id="gallery-sort"
+                id="history-sort"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
               >
@@ -392,28 +400,67 @@ function UploadPage({
         </div>
 
         {loading ? (
-          <p className="upload-gallery-empty">Loading images…</p>
+          <p className="upload-gallery-empty">Loading history…</p>
         ) : fetchError ? (
           <p className="upload-gallery-empty" style={{ color: "#c0392b" }}>
             {fetchError}
           </p>
         ) : images.length === 0 ? (
           <p className="upload-gallery-empty">
-            No images yet. Upload your first X-ray above.
+            No analyses yet. Upload your first knee X-ray.
           </p>
         ) : displayedImages.length === 0 ? (
           <p className="upload-gallery-empty">
-            No images match the current filter.
+            No analyses match the current filter.
           </p>
         ) : (
-          <ImageGallery
-            images={displayedImages}
-            onImageClick={onOpenGalleryImage}
-          />
+          <div className="history-grid">
+            {displayedImages.map((img) => (
+              <button
+                key={img.id}
+                type="button"
+                className="history-card"
+                onClick={() => onOpenHistoryImage(img)}
+              >
+                <div className="history-card-image">
+                  {img.url ? (
+                    <img src={img.url} alt={img.originalName || "History image"} />
+                  ) : (
+                    <div className="gallery-card-empty">No preview</div>
+                  )}
+                </div>
+
+                <div className="history-card-body">
+                  <p className="history-card-name">
+                    {img.originalName || "Uploaded image"}
+                  </p>
+                  <p className="history-card-date">
+                    {img.createdAt
+                      ? new Date(img.createdAt).toLocaleString()
+                      : "Unknown upload time"}
+                  </p>
+
+                  <div className="history-badges">
+                    <span className="history-badge">
+                      {img.grade || "No grade"}
+                    </span>
+                    <span className="history-badge">
+                      {typeof img.confidence === "number"
+                        ? `${img.confidence.toFixed(2)}%`
+                        : "N/A"}
+                    </span>
+                    <span className="history-badge">
+                      {img.severityLabel || "Unknown"}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </main>
   );
 }
 
-export default UploadPage;
+export default HistoryPage;
