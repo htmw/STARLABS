@@ -166,7 +166,7 @@ The `best_model_b4.pt` file is excluded from git (it is large). Distribute it se
 **For Docker:** place `best_model_b4.pt` next to `infra/docker-compose.yml` and set in `.env`:
 
 ```
-MODEL_PATH=./model.hdf5
+MODEL_PATH=./best_model_b4.pt
 ```
 
 The compose file bind-mounts it read-only into the `ml-service` container at `/app/best_model_b4.pt`.
@@ -233,15 +233,15 @@ DICOM files (`.dcm`) are stored as-is without preprocessing.
 
 ## Environment Variables
 
-| Variable               | Service    | Description                                       |
-| ---------------------- | ---------- | ------------------------------------------------- |
-| `MONGODB_URI`          | backend    | MongoDB connection string                         |
-| `JWT_SECRET`           | backend    | Secret for signing JWTs (use a strong random str) |
-| `PORT`                 | backend    | Backend HTTP port (default: 4000)                 |
-| `ML_SERVICE_URL`       | backend    | URL of the FastAPI service                        |
-| `MODEL_PATH`           | ml-service | Path to best_model_b4.pt inside container         |
-<!-- | `LAST_CONV_LAYER_NAME` | ml-service | Grad-CAM target layer name                        | -->
-| `VITE_BACKEND_URL`     | frontend   | Backend URL injected at Vite build time           |
+| Variable           | Service                | Description                                       |
+| ------------------ | ---------------------- | ------------------------------------------------- | -------------------------- | --- |
+| `MONGODB_URI`      | backend                | MongoDB connection string                         |
+| `JWT_SECRET`       | backend                | Secret for signing JWTs (use a strong random str) |
+| `PORT`             | backend                | Backend HTTP port (default: 4000)                 |
+| `ML_SERVICE_URL`   | backend                | URL of the FastAPI service                        |
+| `MODEL_PATH`       | ml-service             | Path to best_model_b4.pt inside container         |
+| <!--               | `LAST_CONV_LAYER_NAME` | ml-service                                        | Grad-CAM target layer name | --> |
+| `VITE_BACKEND_URL` | frontend               | Backend URL injected at Vite build time           |
 
 ---
 
@@ -251,7 +251,7 @@ DICOM files (`.dcm`) are stored as-is without preprocessing.
 | ---------- | ----------------------------------------------- |
 | Frontend   | React 19, TypeScript, Vite, react-dropzone      |
 | Backend    | Node.js 20, Express 5, MongoDB, sharp, bcryptjs |
-| ML Service | Python 3.10, FastAPI, PyTorch, Grad-CAM |
+| ML Service | Python 3.10, FastAPI, PyTorch, Grad-CAM         |
 | Database   | MongoDB Atlas (prod) / MongoDB 7 Docker (dev)   |
 | Serving    | nginx 1.27-alpine                               |
 | Container  | Docker + Docker Compose                         |

@@ -21,7 +21,7 @@ build/
 backend/uploads/
 
 # ── ML model ──────────────────────────────────────────────────────────────────
-# model.hdf5 lives at ml-service/model.hdf5 and is COPYed into Docker at build
+# best_model_b4.pt lives at ml-service/best_model_b4.pt and is COPYed into Docker at build
 # time — but should never be committed to git (it is large).
 # Share the file out-of-band (Google Drive, DVC, S3, etc.)
 ml-service/*.hdf5
