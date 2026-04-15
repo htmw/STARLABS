@@ -1,6 +1,7 @@
 import base64
 import io
 import os
+import sqlite3
 
 import cv2
 import numpy as np
@@ -9,6 +10,7 @@ import torch.nn as nn
 from torchvision import transforms, models
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from PIL import Image
 
 app = FastAPI(title="KneeVision ML Service")
@@ -24,7 +26,7 @@ app.add_middleware(
 CLASS_NAMES = ["Grade 0", "Grade 1", "Grade 2", "Grade 3", "Grade 4"]
 TARGET_SIZE = 224
 MODEL_PATH = os.environ.get("MODEL_PATH", "best_model_b4.pt")
-
+DB_PATH = os.environ.get("DB_PATH", "kneevision_final.db")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -52,9 +54,30 @@ model = KOAEfficientNet(num_classes=5).to(DEVICE)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
+_checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+_state = _checkpoint.get("model_state_dict", _checkpoint)
+_new_state = {}
+for k, v in _state.items():
+    if k.startswith("backbone.classifier"):
+        continue
+    if k.startswith("backbone."):
+        _new_state[k[len("backbone."):]] = v
+
+feature_extractor = models.efficientnet_b4(weights=None)
+feature_extractor.load_state_dict(_new_state, strict=False)
+feature_extractor.classifier = nn.Identity()
+feature_extractor.eval()
+feature_extractor.to(DEVICE)
+
 preprocess = transforms.Compose([
     transforms.Grayscale(num_output_channels=3),
     transforms.Resize((TARGET_SIZE, TARGET_SIZE)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+
+feature_transform = transforms.Compose([
+    transforms.Resize((380, 380)),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
@@ -88,19 +111,15 @@ def severity_label_from_grade(grade):
 def make_gradcam_heatmap(img_tensor, pred_index):
     img_tensor.requires_grad_(True)
     output = model(img_tensor)
-
     model.zero_grad()
     class_score = output[0, pred_index]
     class_score.backward()
-
     gradients = gradcam_gradients["value"]
     activations = gradcam_activations["value"]
-
     weights = torch.mean(gradients, dim=[2, 3], keepdim=True)
     heatmap = torch.sum(weights * activations, dim=1).squeeze()
     heatmap = torch.relu(heatmap)
     heatmap = heatmap / (heatmap.max() + 1e-8)
-
     return heatmap.cpu().numpy()
 
 
@@ -108,24 +127,101 @@ def save_gradcam_to_base64(img_np, heatmap, alpha=0.35):
     heatmap_resized = cv2.resize(heatmap, (img_np.shape[1], img_np.shape[0]))
     heatmap_uint8 = np.uint8(255 * heatmap_resized)
     heatmap_color = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
-
     if img_np.max() <= 1:
         img_uint8 = (img_np * 255).astype("uint8")
     else:
         img_uint8 = img_np.astype("uint8")
-
     if len(img_uint8.shape) == 2:
         img_uint8 = cv2.cvtColor(img_uint8, cv2.COLOR_GRAY2BGR)
-
     superimposed = cv2.addWeighted(img_uint8, 1 - alpha, heatmap_color, alpha, 0)
     superimposed = cv2.cvtColor(superimposed, cv2.COLOR_BGR2RGB)
-
     pil_img = Image.fromarray(superimposed)
     buffer = io.BytesIO()
     pil_img.save(buffer, format="PNG")
     encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
     return f"data:image/png;base64,{encoded}"
+
+
+def image_path_to_base64(image_path):
+    try:
+        with Image.open(image_path) as img:
+            img = img.convert("RGB")
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            return f"data:image/png;base64,{encoded}"
+    except Exception as e:
+        print(f"Image load error for {image_path}: {e}")
+        return None
+
+
+def extract_features(pil_img):
+    pil_rgb = pil_img.convert("RGB")
+    tensor = feature_transform(pil_rgb).unsqueeze(0).to(DEVICE)
+    with torch.no_grad():
+        vec = feature_extractor(tensor).squeeze().cpu().numpy()
+    return vec
+
+
+def cosine_similarity(a, b):
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8))
+
+
+def retrieve_similar(query_vec, kl_grade=None, top_n=5):
+    if not os.path.exists(DB_PATH):
+        return []
+
+    conn = sqlite3.connect(DB_PATH)
+    
+    if kl_grade is not None:
+        rows = conn.execute("""
+            SELECT f.case_id, f.feature_vector,
+                   c.image_path, c.kl_grade, c.dataset_source,
+                   c.osteophyte_severity, c.joint_space_narrowing,
+                   c.subchondral_sclerosis, c.bone_texture,
+                   c.affected_compartment, c.overall_findings
+            FROM features f
+            JOIN cases c ON f.case_id = c.case_id
+            WHERE c.kl_grade = ?
+        """, (kl_grade,)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT f.case_id, f.feature_vector,
+                   c.image_path, c.kl_grade, c.dataset_source,
+                   c.osteophyte_severity, c.joint_space_narrowing,
+                   c.subchondral_sclerosis, c.bone_texture,
+                   c.affected_compartment, c.overall_findings
+            FROM features f
+            JOIN cases c ON f.case_id = c.case_id
+        """).fetchall()
+    conn.close()
+
+    scored = []
+    for row in rows:
+        vec = np.frombuffer(row[1], dtype=np.float32)
+        sim = cosine_similarity(query_vec, vec)
+        scored.append({
+            "caseId": row[0],
+            "similarity": round(sim, 4),
+            "imagePath": row[2],
+            "klGrade": row[3],
+            "datasetSource": row[4],
+            "osteophyteSeverity": row[5],
+            "jointSpaceNarrowing": row[6],
+            "subchondralSclerosis": row[7],
+            "boneTexture": row[8],
+            "affectedCompartment": row[9],
+            "overallFindings": row[10],
+        })
+
+    scored.sort(key=lambda x: x["similarity"], reverse=True)
+    top = scored[:top_n]
+
+    for case in top:
+        case["imageBase64"] = image_path_to_base64(case["imagePath"])
+        del case["imagePath"]
+
+    return top
 
 
 def predict_from_bytes(raw_bytes):
@@ -150,6 +246,9 @@ def predict_from_bytes(raw_bytes):
         for i in range(len(CLASS_NAMES))
     ]
 
+    query_vec = extract_features(pil_img)
+    similar_cases = retrieve_similar(query_vec, kl_grade=pred_index, top_n=5)
+
     return {
         "grade": grade,
         "confidence": round(confidence, 2),
@@ -157,7 +256,12 @@ def predict_from_bytes(raw_bytes):
         "probabilities": prob_list,
         "summary": f"The model predicts {grade} with {confidence:.2f}% confidence.",
         "heatmapUrl": heatmap_url,
+        "similarCases": similar_cases,
     }
+
+
+class SimilarRequest(BaseModel):
+    filePath: str
 
 
 @app.get("/health")
@@ -169,16 +273,25 @@ def health():
 async def predict(file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing file.")
-
     if file.content_type not in {"image/png", "image/jpeg", "image/jpg"}:
         raise HTTPException(status_code=400, detail="Only PNG and JPEG images are supported.")
-
     raw_bytes = await file.read()
     if not raw_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-
     try:
         result = predict_from_bytes(raw_bytes)
         return result
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/similar")
+async def similar(file: UploadFile = File(...), kl_grade: int = None):
+    try:
+        raw_bytes = await file.read()
+        pil_img = Image.open(io.BytesIO(raw_bytes)).convert("L")
+        query_vec = extract_features(pil_img)
+        similar_cases = retrieve_similar(query_vec, kl_grade=kl_grade, top_n=5)
+        return {"similarCases": similar_cases}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

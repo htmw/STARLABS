@@ -74,59 +74,66 @@ function App() {
   };
 
   const handleOpenSavedAnalysis = async (image: PredictionImageRef) => {
+  try {
+    if (!image.id) throw new Error("Image id is missing.");
+
+    const res = await fetch(`${BACKEND}/api/v1/predictions`, {
+      headers: authHeader(),
+    });
+
+    if (res.status === 401) { handleLogout(); return; }
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.message || `Failed to load predictions (${res.status})`);
+    }
+
+    const predictions = await res.json();
+    const matched = predictions.find(
+      (prediction: { imageId: string; fileUrl: string; result: AnalysisResult }) =>
+        prediction.imageId === image.id,
+    );
+
+    if (!matched) throw new Error("No saved prediction found for this upload.");
+
+    const result: AnalysisResult = {
+      imageUrl: `${BACKEND}${matched.fileUrl}`,
+      fileName: image.originalName || "Uploaded image",
+      grade: matched.result.grade,
+      confidence: matched.result.confidence,
+      probabilities: matched.result.probabilities || [],
+      summary: matched.result.summary || "",
+      severityLabel: matched.result.severityLabel || "Unknown",
+      heatmapUrl: matched.result.heatmapUrl,
+      isMock: false,
+      similarCases: [],
+    };
+
+    setAnalysisResult(result);
+    setAppView("results");
+
+    // fetch similar cases in background
     try {
-      if (!image.id) {
-        throw new Error("Image id is missing.");
-      }
-
-      const res = await fetch(`${BACKEND}/api/v1/predictions`, {
-        headers: authHeader(),
+      const simRes = await fetch(`${BACKEND}/api/v1/similar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(),
+        },
+        body: JSON.stringify({ fileUrl: matched.fileUrl, grade: matched.result.grade }),
       });
-
-      if (res.status === 401) {
-        handleLogout();
-        return;
-      }
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(
-          errorData?.message || `Failed to load predictions (${res.status})`,
+      if (simRes.ok) {
+        const simData = await simRes.json();
+        setAnalysisResult((prev) =>
+          prev ? { ...prev, similarCases: simData.similarCases } : prev
         );
       }
-
-      const predictions = await res.json();
-
-      const matched = predictions.find(
-        (prediction: {
-          imageId: string;
-          fileUrl: string;
-          result: AnalysisResult;
-        }) => prediction.imageId === image.id,
-      );
-
-      if (!matched) {
-        throw new Error("No saved prediction found for this upload.");
-      }
-
-      const result: AnalysisResult = {
-        imageUrl: `${BACKEND}${matched.fileUrl}`,
-        fileName: image.originalName || "Uploaded image",
-        grade: matched.result.grade,
-        confidence: matched.result.confidence,
-        probabilities: matched.result.probabilities || [],
-        summary: matched.result.summary || "",
-        severityLabel: matched.result.severityLabel || "Unknown",
-        heatmapUrl: matched.result.heatmapUrl,
-        isMock: false,
-      };
-
-      setAnalysisResult(result);
-      setAppView("results");
     } catch (err) {
-      console.error("Failed to open saved analysis:", err);
+      console.error("Similar cases fetch failed:", err);
     }
-  };
+  } catch (err) {
+    console.error("Failed to open saved analysis:", err);
+  }
+};
 
   if (isAuthenticated) {
     if (appView === "results" && analysisResult) {

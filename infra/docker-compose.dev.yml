@@ -26,6 +26,8 @@ services:
     volumes:
       - ../ml-service/app.py:/app/app.py
       - ../ml-service/best_model_b4.pt:/app/best_model_b4.pt:ro
+      - ../ml-service/kneevision_final.db:/app/kneevision_final.db:ro
+      - ../ml-service/reference_cases:/app/reference_cases:ro
     command:
       ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
