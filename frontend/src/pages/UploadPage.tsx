@@ -39,6 +39,7 @@ function buildRealAnalysis(savedItem: any, prediction: any): AnalysisResult {
       `The model predicts ${prediction.grade} with ${prediction.confidence}% confidence.`,
     heatmapUrl: prediction.heatmapUrl,
     isMock: false,
+    similarCases: prediction.similarCases || [], 
   };
 }
 

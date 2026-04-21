@@ -18,19 +18,19 @@ export default defineConfig({
   },
   projects: [
   {
-    name: 'chromium', // 涵盖了 Chrome 和大部分现代浏览器
+    name: 'chromium',
     use: { ...devices['Desktop Chrome'] },
   },
   {
-    name: 'firefox', // 即使你没装火狐，跑一下 install 就能测
+    name: 'firefox', 
     use: { ...devices['Desktop Firefox'] },
   },
   {
-    name: 'webkit', // 即使你没 Mac，也能测 Safari 兼容性！
+    name: 'webkit', 
     use: { ...devices['Desktop Safari'] },
   },
   {
-    name: 'edge', // 调用你本地真实的 Edge
+    name: 'edge', 
     use: { ...devices['Desktop Edge'], channel: 'msedge' },
   },
 ],

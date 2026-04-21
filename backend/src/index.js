@@ -512,4 +512,54 @@ app.get("/api/v1/predictions", requireAuth, async (req, res) => {
   }
 });
 
+app.post("/api/v1/similar", requireAuth, async (req, res) => {
+  try {
+    const { fileUrl, grade } = req.body || {};
+
+    if (!fileUrl || typeof fileUrl !== "string" || !fileUrl.startsWith("/uploads/")) {
+      return res.status(400).json({ message: "Invalid fileUrl." });
+    }
+
+    const decodedFileUrl = decodeURIComponent(fileUrl);
+    const filename = path.basename(decodedFileUrl);
+    const localFilePath = path.join("uploads", filename);
+
+    try {
+      await fs.access(localFilePath);
+    } catch {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    const fileBuffer = await fs.readFile(localFilePath);
+    const form = new FormData();
+    const blob = new Blob([fileBuffer], { type: "image/png" });
+    form.append("file", blob, filename);
+
+    const gradeMap = { "Grade 0": 0, "Grade 1": 1, "Grade 2": 2, "Grade 3": 3, "Grade 4": 4 };
+    const gradeIndex = grade !== undefined && gradeMap[grade] !== undefined
+      ? gradeMap[grade]
+      : null;
+
+    const mlUrl = gradeIndex !== null
+      ? `${ML_SERVICE_URL}/similar?kl_grade=${gradeIndex}`
+      : `${ML_SERVICE_URL}/similar`;
+
+    const response = await fetch(mlUrl, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ML service error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error("Similar cases failed:", err);
+    return res.status(500).json({ message: "Similar cases fetch failed." });
+  }
+});
+
 startServer();
