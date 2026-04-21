@@ -3,6 +3,20 @@ export type ProbabilityItem = {
   value: number;
 };
 
+export type SimilarCase = {
+  caseId: string;
+  similarity: number;
+  imageBase64: string | null;
+  klGrade: number;
+  datasetSource: string;
+  osteophyteSeverity: string;
+  jointSpaceNarrowing: string;
+  subchondralSclerosis: string;
+  boneTexture: string;
+  affectedCompartment: string;
+  overallFindings: string;
+};
+
 export type AnalysisResult = {
   imageUrl: string;
   fileName: string;
@@ -13,6 +27,7 @@ export type AnalysisResult = {
   severityLabel: string;
   heatmapUrl?: string;
   isMock?: boolean;
+  similarCases?: SimilarCase[];
 };
 
 type ResultsPageProps = {
@@ -52,18 +67,10 @@ function ResultsPage({
           </div>
 
           <div className="results-header-actions">
-            <button className="secondary-button" onClick={onBackToDashboard}>
-              Dashboard
-            </button>
-            <button className="secondary-button" onClick={onGoToHistory}>
-              History
-            </button>
-            <button className="secondary-button" onClick={onBackToUpload}>
-              Upload
-            </button>
-            <button className="secondary-button" onClick={onLogout}>
-              Logout
-            </button>
+            <button className="secondary-button" onClick={onBackToDashboard}>Dashboard</button>
+            <button className="secondary-button" onClick={onGoToHistory}>History</button>
+            <button className="secondary-button" onClick={onBackToUpload}>Upload</button>
+            <button className="secondary-button" onClick={onLogout}>Logout</button>
           </div>
         </header>
 
@@ -93,7 +100,6 @@ function ResultsPage({
               <h3>Input Image</h3>
               <p>Uploaded file: {result.fileName}</p>
             </div>
-
             <div className="results-image-frame">
               <img src={result.imageUrl} alt={result.fileName} />
             </div>
@@ -102,13 +108,8 @@ function ResultsPage({
           <article className="results-card">
             <div className="results-card-header">
               <h3>Grad-CAM Explanation</h3>
-              <p>
-                This section is aligned with the Streamlit output. Until a real
-                Grad-CAM image is returned by the backend, a styled preview is
-                shown here.
-              </p>
+              <p>Regions the model focused on when making its prediction.</p>
             </div>
-
             {result.heatmapUrl ? (
               <div className="results-image-frame">
                 <img src={result.heatmapUrl} alt="Grad-CAM explanation" />
@@ -130,19 +131,16 @@ function ResultsPage({
               <h3>Class Probabilities</h3>
               <p>Probability distribution across all five severity classes.</p>
             </div>
-
             <div className="results-probability-list">
               {result.probabilities.map((item) => (
                 <div key={item.label} className="results-probability-row">
                   <span className="results-probability-label">{item.label}</span>
-
                   <div className="results-probability-track">
                     <div
                       className="results-probability-fill"
                       style={{ width: `${Math.max(item.value, 2)}%` }}
                     />
                   </div>
-
                   <span className="results-probability-value">
                     {item.value.toFixed(2)}%
                   </span>
@@ -156,7 +154,6 @@ function ResultsPage({
               <h3>Summary</h3>
               <p>{result.summary}</p>
             </div>
-
             <div className="results-summary-grid">
               <div className="results-info-box">
                 <span>Confidence</span>
@@ -175,15 +172,12 @@ function ResultsPage({
                 <strong>{result.heatmapUrl ? "Connected" : "Placeholder"}</strong>
               </div>
             </div>
-
-            {result.isMock ? (
+            {result.isMock && (
               <div className="results-note">
-                This is a front-end mock result that matches the expected AI
-                output format. Once your predict endpoint is ready, you only
-                need to replace the mock data with the actual backend response.
+                This is a front-end mock result. Once your predict endpoint is
+                ready, replace the mock data with the actual backend response.
               </div>
-            ) : null}
-
+            )}
             <div className="results-actions">
               <button className="primary-button" onClick={onBackToUpload}>
                 Analyze Another Image
@@ -191,6 +185,74 @@ function ResultsPage({
             </div>
           </article>
         </section>
+
+        {/* Similar Cases */}
+        {result.similarCases && result.similarCases.length > 0 && (
+          <section className="results-similar-section">
+            <div className="results-card-header">
+              <h3>Similar Cases</h3>
+              <p>
+                Top {result.similarCases.length} visually similar X-rays from
+                the reference database, ranked by feature similarity.
+              </p>
+            </div>
+
+            <div className="results-similar-grid">
+              {result.similarCases.map((c) => (
+                <article key={c.caseId} className="results-similar-card">
+                  <div className="results-similar-image-frame">
+                    {c.imageBase64 ? (
+                      <img src={c.imageBase64} alt={`Case ${c.caseId}`} />
+                    ) : (
+                      <div className="results-similar-no-image">No image</div>
+                    )}
+                    <div className="results-similar-badge">
+                      {(c.similarity * 100).toFixed(1)}% match
+                    </div>
+                  </div>
+
+                  <div className="results-similar-meta">
+                    <div className="results-similar-grade">
+                      KL Grade {c.klGrade}
+                    </div>
+                    <div className="results-similar-tags">
+                      {c.osteophyteSeverity && (
+                        <span className="results-similar-tag">
+                          Osteophytes: {c.osteophyteSeverity}
+                        </span>
+                      )}
+                      {c.jointSpaceNarrowing && (
+                        <span className="results-similar-tag">
+                          JSN: {c.jointSpaceNarrowing}
+                        </span>
+                      )}
+                      {c.subchondralSclerosis && (
+                        <span className="results-similar-tag">
+                          Sclerosis: {c.subchondralSclerosis}
+                        </span>
+                      )}
+                      {c.boneTexture && (
+                        <span className="results-similar-tag">
+                          Texture: {c.boneTexture}
+                        </span>
+                      )}
+                      {c.affectedCompartment && (
+                        <span className="results-similar-tag">
+                          Compartment: {c.affectedCompartment}
+                        </span>
+                      )}
+                    </div>
+                    {c.overallFindings && (
+                      <p className="results-similar-findings">
+                        {c.overallFindings}
+                      </p>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
