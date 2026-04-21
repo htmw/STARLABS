@@ -1,6 +1,6 @@
 # KneeVision — STARLABS
 
-AI-assisted knee X-ray analysis platform. Classifies knee osteoarthritis severity using the Kellgren-Lawrence (KL) grading scale (Grade 0–4) and produces Grad-CAM heatmap explanations.
+AI-assisted Knee X-ray analysis platform. Classifies Knee Osteoarthritis severity using the Kellgren-Lawrence (KL) grading scale (Grade 0–4) and produces Grad-CAM heatmap explanations.
 
 ---
 
