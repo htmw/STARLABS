@@ -14,8 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app.py .
-COPY kneevision_final.db .
-COPY reference_cases/ ./reference_cases/
+
 
 # Copy the model file — must exist at ml-service/best_model_b4.pt on the host
 ENV MODEL_PATH=/app/best_model_b4.pt
