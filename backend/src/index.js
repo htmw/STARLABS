@@ -189,6 +189,52 @@ const isSafeKey = (key) => {
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
+function escapeCsvValue(value) {
+  if (value === null || value === undefined) return "";
+
+  const stringValue =
+    typeof value === "object" ? JSON.stringify(value) : String(value);
+
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes('"') ||
+    stringValue.includes("\n")
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  return stringValue;
+}
+
+function buildPredictionsCsv(docs) {
+  const headers = [
+    "predictionId",
+    "imageId",
+    "fileUrl",
+    "grade",
+    "confidence",
+    "severityLabel",
+    "summary",
+    "createdAt",
+  ];
+
+  const rows = docs.map((doc) => [
+    doc._id?.toString() || "",
+    doc.imageId || "",
+    doc.fileUrl || "",
+    doc.result?.grade || "",
+    doc.result?.confidence ?? "",
+    doc.result?.severityLabel || "",
+    doc.result?.summary || "",
+    doc.createdAt || "",
+  ]);
+
+  return [
+    headers.map(escapeCsvValue).join(","),
+    ...rows.map((row) => row.map(escapeCsvValue).join(",")),
+  ].join("\n");
+}
+
 async function callMlPredict(localFilePath, originalName = "image.png") {
   const fileBuffer = await fs.readFile(localFilePath);
 
@@ -509,6 +555,32 @@ app.get("/api/v1/predictions", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Failed to fetch predictions." });
+  }
+});
+
+app.get("/api/v1/predictions/export/csv", requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const predictions = db.collection("predictions");
+
+    const docs = await predictions
+      .find({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const csv = `\uFEFF${buildPredictionsCsv(docs)}`;
+    const datePart = new Date().toISOString().slice(0, 10);
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="predictions-${datePart}.csv"`,
+    );
+
+    return res.status(200).send(csv);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Failed to export predictions CSV." });
   }
 });
 
