@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:predict-api": "vitest run tests/predict-api.performance.test.js"
   },
   "keywords": [],
   "author": "",
