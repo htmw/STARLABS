@@ -421,7 +421,7 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
               </div>
               <div className="quiz-stat">
                 <span>Result</span>
-                <strong>{accuracy >= 80 ? "🏆 Excellent" : accuracy >= 60 ? "👍 Good" : "📚 Keep Practicing"}</strong>
+                <strong>{accuracy >= 80 ? "Excellent" : accuracy >= 60 ? "Good" : "📚 Keep Practicing"}</strong>
               </div>
             </div>
 
