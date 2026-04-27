@@ -295,3 +295,83 @@ async def similar(file: UploadFile = File(...), kl_grade: int = None):
         return {"similarCases": similar_cases}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    
+# ─── Quiz endpoint ────────────────────────────────────────────────────────────
+# Returns a random case from the DB for the quiz feature.
+# Difficulty filters which grades are included.
+# The kl_grade is NOT returned to the frontend — only revealed after submission.
+@app.get("/quiz/question")
+def quiz_question(difficulty: str = "medium"):
+    if not os.path.exists(DB_PATH):
+        raise HTTPException(status_code=500, detail="Database not found.")
+
+    # filter grades based on difficulty
+    if difficulty == "easy":
+        grade_filter = "(0, 4)"
+    elif difficulty == "hard":
+        grade_filter = "(1, 2, 3)"
+    else:  # medium — all grades
+        grade_filter = "(0, 1, 2, 3, 4)"
+
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute(f"""
+        SELECT case_id, image_path, kl_grade,
+               osteophyte_severity, joint_space_narrowing,
+               subchondral_sclerosis, bone_texture,
+               affected_compartment, overall_findings
+        FROM cases
+        WHERE kl_grade IN {grade_filter}
+          AND image_path IS NOT NULL
+        ORDER BY RANDOM()
+        LIMIT 1
+    """).fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="No cases found.")
+
+    image_base64 = image_path_to_base64(row[1])
+    if not image_base64:
+        raise HTTPException(status_code=500, detail="Could not load image.")
+
+    return {
+        "caseId": row[0],
+        "imageBase64": image_base64,
+        # metadata used for explanation after answer — grade hidden
+        "osteophyteSeverity": row[3],
+        "jointSpaceNarrowing": row[4],
+        "subchondralSclerosis": row[5],
+        "boneTexture": row[6],
+        "affectedCompartment": row[7],
+        "overallFindings": row[8],
+    }
+
+
+@app.get("/quiz/answer/{case_id}")
+def quiz_answer(case_id: str):
+    # returns the correct grade for a given case — called after user submits
+    if not os.path.exists(DB_PATH):
+        raise HTTPException(status_code=500, detail="Database not found.")
+
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("""
+        SELECT kl_grade, osteophyte_severity, joint_space_narrowing,
+               subchondral_sclerosis, bone_texture,
+               affected_compartment, overall_findings
+        FROM cases WHERE case_id = ?
+    """, (case_id,)).fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Case not found.")
+
+    return {
+        "correctGrade": row[0],
+        "osteophyteSeverity": row[1],
+        "jointSpaceNarrowing": row[2],
+        "subchondralSclerosis": row[3],
+        "boneTexture": row[4],
+        "affectedCompartment": row[5],
+        "overallFindings": row[6],
+    }
+# ─── End Quiz endpoint ────────────────────────────────────────────────────────
