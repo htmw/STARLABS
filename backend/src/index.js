@@ -44,7 +44,8 @@ function requireAuth(req, res, next) {
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+// app.use(express.json());
+app.use(express.json({ limit: "20mb" }));
 
 // Serve uploaded files
 app.use("/uploads", express.static("uploads"));
@@ -495,6 +496,170 @@ app.post("/api/v1/predict", requireAuth, async (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
+
+// ─── Chat history endpoints ───────────────────────────────────────────────────
+// Save chat history for a specific prediction
+app.post("/api/v1/chat-history", requireAuth, async (req, res) => {
+  try {
+    const { predictionId, messages } = req.body || {};
+
+    if (!predictionId || !messages) {
+      return res.status(400).json({ message: "predictionId and messages are required." });
+    }
+
+    const db = getDb();
+    const chatHistories = db.collection("chatHistories");
+
+    await chatHistories.updateOne(
+      { predictionId, userId: req.user.userId },
+      {
+        $set: {
+          predictionId,
+          userId: req.user.userId,
+          messages,
+          updatedAt: new Date().toISOString(),
+        },
+        $setOnInsert: { createdAt: new Date().toISOString() },
+      },
+      { upsert: true }
+    );
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Save chat history failed:", err);
+    return res.status(500).json({ message: "Failed to save chat history." });
+  }
+});
+
+// Get chat history for a specific prediction
+app.get("/api/v1/chat-history/:predictionId", requireAuth, async (req, res) => {
+  try {
+    const { predictionId } = req.params;
+
+    const db = getDb();
+    const chatHistories = db.collection("chatHistories");
+
+    const history = await chatHistories.findOne({
+      predictionId,
+      userId: req.user.userId,
+    });
+
+    return res.status(200).json({ messages: history?.messages ?? [] });
+  } catch (err) {
+    console.error("Get chat history failed:", err);
+    return res.status(500).json({ message: "Failed to get chat history." });
+  }
+});
+// ─── End Chat history endpoints ───────────────────────────────────────────────
+
+// ─── Chat endpoint ────────────────────────────────────────────────────────────
+// Receives the uploaded image (base64), ML result metadata, similar cases,
+// and full conversation history. Builds a system prompt with all the clinical
+// context and sends it to Llama 4 via Groq (free, vision-capable).
+app.post("/api/v1/chat", requireAuth, async (req, res) => {
+  try {
+    const { imageBase64, result, similarCases, messages } = req.body || {};
+
+    if (!imageBase64 || !result || !messages) {
+      return res.status(400).json({ message: "imageBase64, result, and messages are required." });
+    }
+
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!GROQ_API_KEY) {
+      return res.status(500).json({ message: "Groq API key not configured." });
+    }
+
+    const similarSummary = (similarCases || [])
+      .map((c, i) => `
+Case ${i + 1} (KL Grade ${c.klGrade}, ${(c.similarity * 100).toFixed(1)}% match):
+- Osteophytes: ${c.osteophyteSeverity}
+- Joint space narrowing: ${c.jointSpaceNarrowing}
+- Subchondral sclerosis: ${c.subchondralSclerosis}
+- Bone texture: ${c.boneTexture}
+- Affected compartment: ${c.affectedCompartment}
+- Findings: ${c.overallFindings}`)
+      .join("\n");
+
+    const systemPrompt = `You are a radiology assistant specializing in knee osteoarthritis analysis using the Kellgren-Lawrence (KL) grading system.
+
+UPLOADED IMAGE ANALYSIS:
+- Predicted KL Grade: ${result.grade}
+- Severity: ${result.severityLabel}
+- Confidence: ${result.confidence.toFixed(2)}%
+- Osteophytes: ${result.osteophyteSeverity ?? "N/A"}
+- Joint space narrowing: ${result.jointSpaceNarrowing ?? "N/A"}
+- Subchondral sclerosis: ${result.subchondralSclerosis ?? "N/A"}
+- Bone texture: ${result.boneTexture ?? "N/A"}
+- Affected compartment: ${result.affectedCompartment ?? "N/A"}
+- Findings: ${result.overallFindings ?? result.summary}
+
+SIMILAR REFERENCE CASES FROM DATABASE:
+${similarSummary || "No similar cases available."}
+
+You can see the uploaded knee X-ray image. Answer questions about the image, the predicted grade, and how it compares to the similar cases. Be concise and clinically grounded.`;
+
+    // imageBase64 may be a URL (/uploads/...) or actual base64 — handle both
+    let base64Data;
+    if (imageBase64.startsWith("data:image")) {
+      base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    } else {
+      const filename = path.basename(decodeURIComponent(imageBase64));
+      const filePath = path.join("uploads", filename);
+      const fileBuffer = await fs.readFile(filePath);
+      base64Data = fileBuffer.toString("base64");
+    }
+
+    // map conversation history to OpenAI-compatible format.
+    // the first user message includes the image so the model can see the X-ray.
+    const chatMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((msg, index) => {
+        if (msg.role === "user" && index === 0) {
+          return {
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: `data:image/png;base64,${base64Data}` } },
+              { type: "text", text: msg.content },
+            ],
+          };
+        }
+        return {
+          role: msg.role === "assistant" ? "assistant" : "user",
+          content: msg.content,
+        };
+      }),
+    ];
+
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        messages: chatMessages,
+        max_tokens: 1024,
+        temperature: 0.4,
+      }),
+    });
+
+    if (!groqResponse.ok) {
+      const err = await groqResponse.text();
+      throw new Error(`Groq API error (${groqResponse.status}): ${err}`);
+    }
+
+    const groqData = await groqResponse.json();
+    const reply = groqData.choices?.[0]?.message?.content ?? "No response generated.";
+
+    return res.status(200).json({ reply });
+  } catch (err) {
+    console.error("Chat failed:", err);
+    return res.status(500).json({ message: "Chat request failed." });
+  }
+});
+// ─── End Chat endpoint ────────────────────────────────────────────────────────
+
 async function startServer() {
   try {
     await connectToMongo();
@@ -634,4 +799,105 @@ app.post("/api/v1/similar", requireAuth, async (req, res) => {
   }
 });
 
+// ─── Quiz endpoints ───────────────────────────────────────────────────────────
+// Proxies quiz questions from ML service and handles score persistence.
+
+// get a random quiz question from ML service
+app.get("/api/v1/quiz/question", requireAuth, async (req, res) => {
+  try {
+    const { difficulty = "medium" } = req.query;
+    const response = await fetch(`${ML_SERVICE_URL}/quiz/question?difficulty=${difficulty}`);
+    if (!response.ok) throw new Error(`ML service error (${response.status})`);
+    const data = await response.json();
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error("Quiz question failed:", err);
+    return res.status(500).json({ message: "Failed to get quiz question." });
+  }
+});
+
+// verify answer and return correct grade + explanation
+app.post("/api/v1/quiz/submit", requireAuth, async (req, res) => {
+  try {
+    const { caseId, userAnswer, difficulty, timeLeft } = req.body || {};
+    if (!caseId || userAnswer === undefined) {
+      return res.status(400).json({ message: "caseId and userAnswer are required." });
+    }
+
+    const response = await fetch(`${ML_SERVICE_URL}/quiz/answer/${caseId}`);
+    if (!response.ok) throw new Error(`ML service error (${response.status})`);
+    const data = await response.json();
+
+    const correct = data.correctGrade === userAnswer;
+
+    return res.status(200).json({
+      correct,
+      correctGrade: data.correctGrade,
+      osteophyteSeverity: data.osteophyteSeverity,
+      jointSpaceNarrowing: data.jointSpaceNarrowing,
+      subchondralSclerosis: data.subchondralSclerosis,
+      boneTexture: data.boneTexture,
+      affectedCompartment: data.affectedCompartment,
+      overallFindings: data.overallFindings,
+    });
+  } catch (err) {
+    console.error("Quiz submit failed:", err);
+    return res.status(500).json({ message: "Failed to submit answer." });
+  }
+});
+
+// save final score to MongoDB
+app.post("/api/v1/quiz/score", requireAuth, async (req, res) => {
+  try {
+    const { score, total, difficulty, accuracy } = req.body || {};
+    const db = getDb();
+    const scores = db.collection("quizScores");
+
+    await scores.insertOne({
+      userId: req.user.userId,
+      email: req.user.email,
+      score,
+      total,
+      difficulty,
+      accuracy,
+      createdAt: new Date().toISOString(),
+    });
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Save score failed:", err);
+    return res.status(500).json({ message: "Failed to save score." });
+  }
+});
+
+// get leaderboard — top 10 scores per difficulty
+app.get("/api/v1/quiz/leaderboard", requireAuth, async (req, res) => {
+  try {
+    const { difficulty = "medium" } = req.query;
+    const db = getDb();
+    const scores = db.collection("quizScores");
+
+    const docs = await scores
+      .find({ difficulty })
+      .sort({ score: -1, accuracy: -1 })
+      .limit(10)
+      .toArray();
+
+    const result = docs.map((doc, index) => ({
+      rank: index + 1,
+      email: doc.email,
+      score: doc.score,
+      total: doc.total,
+      accuracy: doc.accuracy,
+      difficulty: doc.difficulty,
+      createdAt: doc.createdAt,
+    }));
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("Leaderboard failed:", err);
+    return res.status(500).json({ message: "Failed to get leaderboard." });
+  }
+});
+// ─── End Quiz endpoints ───────────────────────────────────────────────────────
 startServer();

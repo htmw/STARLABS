@@ -4,6 +4,7 @@ type DashboardPageProps = {
   onLogout: () => void;
   onGoToUpload: () => void;
   onGoToHistory: () => void;
+  onGoToQuiz: () => void;
   onOpenRecentUpload: (image: DashboardImage) => void;
 };
 
@@ -37,6 +38,7 @@ function DashboardPage({
   onLogout,
   onGoToUpload,
   onGoToHistory,
+  onGoToQuiz,
   onOpenRecentUpload,
 }: DashboardPageProps) {
   const [images, setImages] = useState<DashboardImage[]>([]);
@@ -156,8 +158,13 @@ function DashboardPage({
                 <button className="secondary-button" disabled>
                   Profile
                 </button>
+                <button className="secondary-button" onClick={onGoToQuiz}>
+  Take Quiz
+</button>
               </div>
             </section>
+
+            
 
             <section className="dashboard-recent-section">
               <h2 className="upload-section-title">Recent Uploads</h2>
@@ -168,7 +175,7 @@ function DashboardPage({
                 </p>
               ) : (
                 <div className="dashboard-recent-list">
-                  {recentUploads.map((img) => (
+                  {recentUploads.map((img, index) => (
                     <button
                       key={img.id}
                       type="button"
@@ -184,8 +191,8 @@ function DashboardPage({
 
                       <div className="dashboard-recent-meta">
                         <p className="dashboard-recent-name">
-                          {img.originalName || "Uploaded image"}
-                        </p>
+  {`Case ${String(totalUploads - index).padStart(3, "0")}`}
+</p>
                         <p className="dashboard-recent-date">
                           {img.createdAt
                             ? new Date(img.createdAt).toLocaleString()
