@@ -10,12 +10,25 @@ It is responsible for:
 
 ## Prerequisite
 Download model from (https://drive.google.com/file/d/1JiEkX4NsJM2RT0d3ZKOfZBiLy7euGaJi/view?usp=share_link)
+Download database file from (https://drive.google.com/file/d/1AsnAHqCheY7wLV6gd7DkgQDI_xInZgaG/view?usp=share_link)
+Download reference_cases from (https://drive.google.com/drive/folders/1eFfkClKHnjFHU6UkLNDq3SnYf7k_mVKr?usp=share_link)
 
-Before running the ML service, make sure the model file is available locally:
+
+Before running the ML service, make sure the model file, database file and reference_cases are available locally:
 
 ```text
-STARLABS/ml-service/best_model_b4.pt
+STARLABS/
+└── ml-service/
+    ├── best_model_b4.pt
+    ├── kneevision_final.db
+    └── reference_cases/
+        ├── Grade0/
+        ├── Grade1/
+        ├── Grade2/
+        ├── Grade3/
+        └── Grade4/
 ```
+
 
 The application inside the Docker container looks for the model at:
 
