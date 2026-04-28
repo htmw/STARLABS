@@ -209,6 +209,18 @@ function compareByNewest(a?: string, b?: string) {
   return getTimeValue(b) - getTimeValue(a);
 }
 
+function getExportFilename(response: Response) {
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  const datePart = new Date().toISOString().slice(0, 10);
+  return `predictions-${datePart}.csv`;
+}
+
 function HistoryPage({
   onLogout,
   onGoToDashboard,
@@ -218,6 +230,8 @@ function HistoryPage({
   const [images, setImages] = useState<HistoryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  const [exportError, setExportError] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
   const [gradeFilter, setGradeFilter] = useState<GradeFilterOption>("all-grades");
@@ -287,6 +301,46 @@ function HistoryPage({
     fetchHistory();
   }, [fetchHistory]);
 
+  const handleExportCsv = async () => {
+    try {
+      setExportError("");
+      setExporting(true);
+
+      const res = await fetch(`${BACKEND}/api/v1/predictions/export/csv`, {
+        headers: authHeader(),
+      });
+
+      if (res.status === 401) {
+        onLogout();
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || `CSV export failed (${res.status})`);
+      }
+
+      const blob = await res.blob();
+      const filename = getExportFilename(res);
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Could not export CSV.";
+      setExportError(message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const displayedImages = useMemo(() => {
     let next = [...images];
 
@@ -303,7 +357,7 @@ function HistoryPage({
     }
 
     if (gradeFilter !== "all-grades") {
-        next = next.filter((img) => img.grade === gradeFilter);
+      next = next.filter((img) => img.grade === gradeFilter);
     }
 
     if (sortBy === "newest") {
@@ -348,56 +402,81 @@ function HistoryPage({
           Browse past uploads and reopen saved analysis results.
         </p>
 
-        <div className="upload-section-heading-row">
+        <div
+          className="upload-section-heading-row"
+          style={{
+            alignItems: "center",
+          }}
+        >
           <h2 className="upload-section-title">Analysis History</h2>
 
-          <div className="upload-gallery-toolbar">
-            <div className="upload-toolbar-group">
-              <label htmlFor="history-filter">Filter</label>
-              <select
-                id="history-filter"
-                value={filterBy}
-                onChange={(e) => setFilterBy(e.target.value as FilterOption)}
-              >
-                <option value="all">All</option>
-                <option value="today">Today</option>
-                <option value="week">This week</option>
-                <option value="month">This month</option>
-                <option value="within-6-months">Last 6 months</option>
-                <option value="older-6-months">Older than 6 months</option>
-              </select>
-            </div>
-            <div className="upload-toolbar-group">
-                <label htmlFor="history-grade-filter">Grade</label>
-                <select
-                    id="history-grade-filter"
-                    value={gradeFilter}
-                    onChange={(e) =>
-                    setGradeFilter(e.target.value as GradeFilterOption)
-                    }
-                >
-                    <option value="all-grades">All Grades</option>
-                    <option value="Grade 0">Grade 0</option>
-                    <option value="Grade 1">Grade 1</option>
-                    <option value="Grade 2">Grade 2</option>
-                    <option value="Grade 3">Grade 3</option>
-                    <option value="Grade 4">Grade 4</option>
-                </select>
-            </div>
-            <div className="upload-toolbar-group">
-              <label htmlFor="history-sort">Sort</label>
-              <select
-                id="history-sort"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="name-smart">Name (0-9, A-Z)</option>
-              </select>
-            </div>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={handleExportCsv}
+            disabled={exporting || loading}
+          >
+            {exporting ? "Exporting..." : "Export CSV"}
+          </button>
+        </div>
+
+        <div className="upload-gallery-toolbar" style={{ marginBottom: "16px" }}>
+          <div className="upload-toolbar-group">
+            <label htmlFor="history-filter">Filter</label>
+            <select
+              id="history-filter"
+              value={filterBy}
+              onChange={(e) => setFilterBy(e.target.value as FilterOption)}
+            >
+              <option value="all">All</option>
+              <option value="today">Today</option>
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+              <option value="within-6-months">Last 6 months</option>
+              <option value="older-6-months">Older than 6 months</option>
+            </select>
+          </div>
+
+          <div className="upload-toolbar-group">
+            <label htmlFor="history-grade-filter">Grade</label>
+            <select
+              id="history-grade-filter"
+              value={gradeFilter}
+              onChange={(e) =>
+                setGradeFilter(e.target.value as GradeFilterOption)
+              }
+            >
+              <option value="all-grades">All Grades</option>
+              <option value="Grade 0">Grade 0</option>
+              <option value="Grade 1">Grade 1</option>
+              <option value="Grade 2">Grade 2</option>
+              <option value="Grade 3">Grade 3</option>
+              <option value="Grade 4">Grade 4</option>
+            </select>
+          </div>
+
+          <div className="upload-toolbar-group">
+            <label htmlFor="history-sort">Sort</label>
+            <select
+              id="history-sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="name-smart">Name (0-9, A-Z)</option>
+            </select>
           </div>
         </div>
+
+        {exportError ? (
+          <p
+            className="upload-gallery-empty"
+            style={{ color: "#c0392b", padding: "0 0 18px" }}
+          >
+            {exportError}
+          </p>
+        ) : null}
 
         {loading ? (
           <p className="upload-gallery-empty">Loading history…</p>
