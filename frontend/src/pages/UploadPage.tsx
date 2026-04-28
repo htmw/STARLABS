@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import ImageUploader from "../components/ImageUploader";
 import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
+import Tooltip from "../components/Tooltip";
 import type { AnalysisResult } from "./ResultsPage";
 
 type UploadPageProps = {
@@ -39,7 +40,7 @@ function buildRealAnalysis(savedItem: any, prediction: any): AnalysisResult {
       `The model predicts ${prediction.grade} with ${prediction.confidence}% confidence.`,
     heatmapUrl: prediction.heatmapUrl,
     isMock: false,
-    similarCases: prediction.similarCases || [], 
+    similarCases: prediction.similarCases || [],
   };
 }
 
@@ -347,7 +348,11 @@ function UploadPage({
           </div>
         </div>
 
-        <p className="upload-subtitle">Upload and review knee X-ray images</p>
+        <p className="upload-subtitle">
+          <Tooltip text="Images are standardized before model analysis.">
+            <span>Upload and review knee X-ray images</span>
+          </Tooltip>
+        </p>
 
         <ImageUploader onUploadSuccess={handleUploadSuccess} />
 
@@ -358,11 +363,19 @@ function UploadPage({
         ) : null}
 
         <div className="upload-section-heading-row">
-          <h2 className="upload-section-title">Gallery</h2>
+          <h2 className="upload-section-title">
+            <Tooltip text="Previously uploaded X-rays for this account.">
+              <span>Gallery</span>
+            </Tooltip>
+          </h2>
 
           <div className="upload-gallery-toolbar">
             <div className="upload-toolbar-group">
-              <label htmlFor="gallery-filter">Filter</label>
+              <label htmlFor="gallery-filter">
+                <Tooltip text="Filter uploads by date range.">
+                  <span>Filter</span>
+                </Tooltip>
+              </label>
               <select
                 id="gallery-filter"
                 value={filterBy}
@@ -378,7 +391,11 @@ function UploadPage({
             </div>
 
             <div className="upload-toolbar-group">
-              <label htmlFor="gallery-sort">Sort</label>
+              <label htmlFor="gallery-sort">
+                <Tooltip text="Sort uploads by time or filename.">
+                  <span>Sort</span>
+                </Tooltip>
+              </label>
               <select
                 id="gallery-sort"
                 value={sortBy}
