@@ -221,10 +221,29 @@ function ResultsPage({
             <p className="results-summary-band">{result.severityLabel}</p>
           </div>
           <div className="results-summary-metrics">
-            <div className="results-metric-chip">
-              <Tooltip text="Model certainty for this selected class.">
-                <span>{result.confidence.toFixed(2)}% confidence</span>
-              </Tooltip>
+            <div className="results-confidence-card">
+              <div className="results-confidence-header">
+                <Tooltip text="Model certainty for this selected class; not diagnostic accuracy.">
+                  <span>Confidence</span>
+                </Tooltip>
+                <strong>{result.confidence.toFixed(2)}%</strong>
+              </div>
+
+              <div
+                className="results-confidence-track"
+                role="progressbar"
+                aria-valuenow={result.confidence}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Confidence ${result.confidence.toFixed(2)}%`}
+              >
+                <div
+                  className="results-confidence-fill"
+                  style={{
+                    width: `${Math.max(0, Math.min(result.confidence, 100))}%`,
+                  }}
+                />
+              </div>
             </div>
             <div className="results-summary-mini">
               <span>

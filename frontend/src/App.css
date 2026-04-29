@@ -1064,6 +1064,46 @@ body {
   font-weight: 700;
 }
 
+.results-confidence-card {
+  min-width: 220px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.results-confidence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.results-confidence-header strong {
+  color: var(--success);
+  font-size: 14px;
+}
+
+.results-confidence-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(13, 122, 78, 0.16);
+  overflow: hidden;
+}
+
+.results-confidence-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--success);
+  transition: width 0.3s ease;
+}
+
 .results-summary-mini {
   padding: 12px 14px;
   border-radius: var(--radius-md);
