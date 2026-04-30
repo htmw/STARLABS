@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { GalleryImage } from "../components/ImageGallery";
+import Tooltip from "../components/Tooltip";
 
 type HistoryPageProps = {
   onLogout: () => void;
@@ -408,21 +409,31 @@ function HistoryPage({
             alignItems: "center",
           }}
         >
-          <h2 className="upload-section-title">Analysis History</h2>
+          <h2 className="upload-section-title">
+            <Tooltip text="Saved AI analyses for the current user.">
+              <span>Analysis History</span>
+            </Tooltip>
+          </h2>
 
-          <button
-            type="button"
-            className="primary-button"
-            onClick={handleExportCsv}
-            disabled={exporting || loading}
-          >
-            {exporting ? "Exporting..." : "Export CSV"}
-          </button>
+          <Tooltip text="Download prediction history for offline review.">
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleExportCsv}
+              disabled={exporting || loading}
+            >
+              {exporting ? "Exporting..." : "Export CSV"}
+            </button>
+          </Tooltip>
         </div>
 
         <div className="upload-gallery-toolbar" style={{ marginBottom: "16px" }}>
           <div className="upload-toolbar-group">
-            <label htmlFor="history-filter">Filter</label>
+            <label htmlFor="history-filter">
+              <Tooltip text="Filter analyses by upload date.">
+                <span>Filter</span>
+              </Tooltip>
+            </label>
             <select
               id="history-filter"
               value={filterBy}
@@ -438,7 +449,11 @@ function HistoryPage({
           </div>
 
           <div className="upload-toolbar-group">
-            <label htmlFor="history-grade-filter">Grade</label>
+            <label htmlFor="history-grade-filter">
+              <Tooltip text="Filter records by predicted KL grade.">
+                <span>Grade</span>
+              </Tooltip>
+            </label>
             <select
               id="history-grade-filter"
               value={gradeFilter}
@@ -456,7 +471,11 @@ function HistoryPage({
           </div>
 
           <div className="upload-toolbar-group">
-            <label htmlFor="history-sort">Sort</label>
+            <label htmlFor="history-sort">
+              <Tooltip text="Control display order for saved analyses.">
+                <span>Sort</span>
+              </Tooltip>
+            </label>
             <select
               id="history-sort"
               value={sortBy}
@@ -521,15 +540,23 @@ function HistoryPage({
 
                   <div className="history-badges">
                     <span className="history-badge">
-                      {img.grade || "No grade"}
+                      <Tooltip text="Predicted Kellgren-Lawrence grade.">
+                        <span>{img.grade || "No grade"}</span>
+                      </Tooltip>
                     </span>
                     <span className="history-badge">
-                      {typeof img.confidence === "number"
-                        ? `${img.confidence.toFixed(2)}%`
-                        : "N/A"}
+                      <Tooltip text="Model certainty for this prediction.">
+                        <span>
+                          {typeof img.confidence === "number"
+                            ? `${img.confidence.toFixed(2)}%`
+                            : "N/A"}
+                        </span>
+                      </Tooltip>
                     </span>
                     <span className="history-badge">
-                      {img.severityLabel || "Unknown"}
+                      <Tooltip text="Readable severity band from KL grade.">
+                        <span>{img.severityLabel || "Unknown"}</span>
+                      </Tooltip>
                     </span>
                   </div>
                 </div>

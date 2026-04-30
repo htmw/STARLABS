@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import Tooltip from "../components/Tooltip";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -211,16 +212,45 @@ function ResultsPage({
         {/* ── Summary card ── */}
         <section className="results-summary-card">
           <div>
-            <p className="results-summary-label">Predicted severity</p>
+            <p className="results-summary-label">
+              <Tooltip text="Model-predicted KL severity category.">
+                <span>Predicted severity</span>
+              </Tooltip>
+            </p>
             <h2>{result.grade}</h2>
             <p className="results-summary-band">{result.severityLabel}</p>
           </div>
           <div className="results-summary-metrics">
-            <div className="results-metric-chip">
-              {result.confidence.toFixed(2)}% confidence
+            <div className="results-confidence-card">
+              <div className="results-confidence-header">
+                <Tooltip text="Model certainty for this selected class; not diagnostic accuracy.">
+                  <span>Confidence</span>
+                </Tooltip>
+                <strong>{result.confidence.toFixed(2)}%</strong>
+              </div>
+
+              <div
+                className="results-confidence-track"
+                role="progressbar"
+                aria-valuenow={result.confidence}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Confidence ${result.confidence.toFixed(2)}%`}
+              >
+                <div
+                  className="results-confidence-fill"
+                  style={{
+                    width: `${Math.max(0, Math.min(result.confidence, 100))}%`,
+                  }}
+                />
+              </div>
             </div>
             <div className="results-summary-mini">
-              <span>Top class</span>
+              <span>
+                <Tooltip text="Class with the highest predicted probability.">
+                  <span>Top class</span>
+                </Tooltip>
+              </span>
               <strong>{topProbability?.label ?? "-"}</strong>
             </div>
           </div>
@@ -240,7 +270,11 @@ function ResultsPage({
 
           <article className="results-card">
             <div className="results-card-header">
-              <h3>Grad-CAM Explanation</h3>
+              <h3>
+                <Tooltip text="Highlights image regions influencing the prediction.">
+                  <span>Grad-CAM Explanation</span>
+                </Tooltip>
+              </h3>
               <p>Regions the model focused on when making its prediction.</p>
             </div>
             {result.heatmapUrl ? (
@@ -261,7 +295,11 @@ function ResultsPage({
         <section className="results-bottom-grid">
           <article className="results-card">
             <div className="results-card-header">
-              <h3>Class Probabilities</h3>
+              <h3>
+                <Tooltip text="Softmax distribution across KL classes.">
+                  <span>Class Probabilities</span>
+                </Tooltip>
+              </h3>
               <p>Probability distribution across all five severity classes.</p>
             </div>
             <div className="results-probability-list">
@@ -289,19 +327,35 @@ function ResultsPage({
             </div>
             <div className="results-summary-grid">
               <div className="results-info-box">
-                <span>Confidence</span>
+                <span>
+                  <Tooltip text="Prediction certainty; not diagnostic accuracy.">
+                    <span>Confidence</span>
+                  </Tooltip>
+                </span>
                 <strong>{result.confidence.toFixed(2)}%</strong>
               </div>
               <div className="results-info-box">
-                <span>Predicted class</span>
+                <span>
+                  <Tooltip text="Predicted Kellgren-Lawrence grade.">
+                    <span>Predicted class</span>
+                  </Tooltip>
+                </span>
                 <strong>{result.grade}</strong>
               </div>
               <div className="results-info-box">
-                <span>Severity band</span>
+                <span>
+                  <Tooltip text="Readable label derived from KL grade.">
+                    <span>Severity band</span>
+                  </Tooltip>
+                </span>
                 <strong>{result.severityLabel}</strong>
               </div>
               <div className="results-info-box">
-                <span>Explanation</span>
+                <span>
+                  <Tooltip text="Indicates whether heatmap output is available.">
+                    <span>Explanation</span>
+                  </Tooltip>
+                </span>
                 <strong>{result.heatmapUrl ? "Connected" : "Placeholder"}</strong>
               </div>
             </div>
@@ -323,7 +377,11 @@ function ResultsPage({
         {result.similarCases && result.similarCases.length > 0 && (
           <section className="results-similar-section">
             <div className="results-card-header">
-              <h3>Similar Cases</h3>
+              <h3>
+                <Tooltip text="Reference cases ranked by feature similarity.">
+                  <span>Similar Cases</span>
+                </Tooltip>
+              </h3>
               <p>
                 Top {result.similarCases.length} visually similar X-rays from
                 the reference database, ranked by feature similarity.
@@ -377,7 +435,11 @@ function ResultsPage({
         ──────────────────────────────────────────────────────────────────────── */}
         <section className="results-chat-section">
           <div className="results-card-header">
-            <h3>Ask about this X-ray</h3>
+            <h3>
+              <Tooltip text="Ask contextual questions about this case.">
+                <span>Ask about this X-ray</span>
+              </Tooltip>
+            </h3>
             <p>
               Ask questions about the predicted grade, findings, or how this
               case compares to similar cases.
