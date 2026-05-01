@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AppShell from "../components/AppShell";
 
 type DashboardPageProps = {
   onLogout: () => void;
@@ -6,6 +7,7 @@ type DashboardPageProps = {
   onGoToHistory: () => void;
   onGoToQuiz: () => void;
   onOpenRecentUpload: (image: DashboardImage) => void;
+  onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
 type DashboardImage = {
@@ -40,6 +42,7 @@ function DashboardPage({
   onGoToHistory,
   onGoToQuiz,
   onOpenRecentUpload,
+  onSearchCase,
 }: DashboardPageProps) {
   const [images, setImages] = useState<DashboardImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,106 +111,157 @@ function DashboardPage({
   const recentUploads = images.slice(0, 3);
 
   return (
-    <main className="upload-page">
-      <div className="upload-card">
-        <div className="upload-header">
-          <h1>KneeVision Dashboard</h1>
-          <button className="secondary-button" onClick={onLogout}>
-            Logout
-          </button>
-        </div>
+    <AppShell
+      currentPage="dashboard"
+      title="Welcome back"
+      subtitle="Review your recent activity and start a new knee X-ray analysis."
+      onGoToUpload={onGoToUpload}
+      onGoToHistory={onGoToHistory}
+      onGoToQuiz={onGoToQuiz}
+      onLogout={onLogout}
+      onSearchCase={onSearchCase}
+    >
+      {loading ? (
+        <p className="kv-loading-message">Loading dashboard...</p>
+      ) : fetchError ? (
+        <p className="kv-error-message">{fetchError}</p>
+      ) : (
+        <>
+          <section className="kv-dashboard-hero">
+            <div className="kv-dashboard-hero-content">
+              <span className="kv-dashboard-eyebrow">AI X-ray Workspace</span>
 
-        <p className="upload-subtitle">
-          Welcome back. Review your recent activity and start a new analysis.
-        </p>
+              <h2>Start a new knee osteoarthritis analysis</h2>
 
-        {loading ? (
-          <p className="upload-gallery-empty">Loading dashboard...</p>
-        ) : fetchError ? (
-          <p className="upload-gallery-empty" style={{ color: "#c0392b" }}>
-            {fetchError}
-          </p>
-        ) : (
-          <>
-            <section className="dashboard-stats">
-              <div className="dashboard-stat-card">
-                <p className="dashboard-stat-label">Total Uploads</p>
-                <h2>{totalUploads}</h2>
-              </div>
+              <p>
+                Upload a knee X-ray image, run AI-assisted KL grade prediction,
+                and review confidence, probability breakdown, and saved history
+                in one workspace.
+              </p>
 
-              <div className="dashboard-stat-card">
-                <p className="dashboard-stat-label">Avg Confidence Score</p>
-                <h2>{avgConfidence !== null ? `${avgConfidence.toFixed(2)}%` : "N/A"}</h2>
-              </div>
-
-              <div className="dashboard-stat-card">
-                <p className="dashboard-stat-label">Recent Uploads</p>
-                <h2>{recentUploads.length}</h2>
-              </div>
-            </section>
-
-            <section className="dashboard-actions-section">
-              <h2 className="upload-section-title">Quick Actions</h2>
-              <div className="dashboard-actions">
-                <button className="primary-button" onClick={onGoToUpload}>
+              <div className="kv-dashboard-hero-actions">
+                <button className="kv-primary-action" onClick={onGoToUpload}>
                   Upload New Image
                 </button>
-                <button className="secondary-button" onClick={onGoToHistory}>
+
+                <button className="kv-secondary-action" onClick={onGoToHistory}>
                   View History
                 </button>
-                <button className="secondary-button" disabled>
-                  Profile
-                </button>
-                <button className="secondary-button" onClick={onGoToQuiz}>
-  Take Quiz
-</button>
               </div>
-            </section>
+            </div>
+          </section>
 
-            
+          <section className="kv-dashboard-stats">
+            <div className="kv-stat-card">
+              <span>Total Uploads</span>
+              <strong>{totalUploads}</strong>
+            </div>
 
-            <section className="dashboard-recent-section">
-              <h2 className="upload-section-title">Recent Uploads</h2>
+            <div className="kv-stat-card">
+              <span>Avg Confidence Score</span>
+              <strong>
+                {avgConfidence !== null ? `${avgConfidence.toFixed(2)}%` : "N/A"}
+              </strong>
+            </div>
+
+            <div className="kv-stat-card">
+              <span>Recent Uploads</span>
+              <strong>{recentUploads.length}</strong>
+            </div>
+          </section>
+
+          <section className="kv-dashboard-grid">
+            <div className="kv-panel">
+              <div className="kv-panel-header">
+                <div>
+                  <h3>Recent Uploads</h3>
+                  <p>Open a previous image and review its saved analysis.</p>
+                </div>
+
+                <button className="kv-link-button" onClick={onGoToHistory}>
+                  View all
+                </button>
+              </div>
 
               {recentUploads.length === 0 ? (
-                <p className="upload-gallery-empty">
+                <div className="kv-empty-state">
                   No uploads yet. Start by uploading your first knee X-ray.
-                </p>
+                </div>
               ) : (
-                <div className="dashboard-recent-list">
+                <div className="kv-recent-list">
                   {recentUploads.map((img, index) => (
                     <button
                       key={img.id}
                       type="button"
-                      className="dashboard-recent-card dashboard-recent-button"
+                      className="kv-recent-card"
                       onClick={() => onOpenRecentUpload(img)}
                     >
-                      <div className="dashboard-recent-thumb">
+                      <div className="kv-recent-thumb">
                         <img
                           src={`${BACKEND}${img.fileUrl}`}
                           alt={img.originalName || "Uploaded image"}
                         />
                       </div>
 
-                      <div className="dashboard-recent-meta">
-                        <p className="dashboard-recent-name">
-  {`Case ${String(totalUploads - index).padStart(3, "0")}`}
-</p>
-                        <p className="dashboard-recent-date">
+                      <div className="kv-recent-meta">
+                        <strong>
+                          {`Case ${String(totalUploads - index).padStart(3, "0")}`}
+                        </strong>
+                        <span>
                           {img.createdAt
                             ? new Date(img.createdAt).toLocaleString()
                             : "Unknown upload time"}
-                        </p>
+                        </span>
                       </div>
+
+                      <span className="kv-recent-pill">Open</span>
                     </button>
                   ))}
                 </div>
               )}
-            </section>
-          </>
-        )}
-      </div>
-    </main>
+            </div>
+
+            <div className="kv-panel">
+              <div className="kv-panel-header">
+                <div>
+                  <h3>Quick Actions</h3>
+                  <p>Common workflow shortcuts for research users.</p>
+                </div>
+              </div>
+
+              <div className="kv-action-list">
+                <button
+                  type="button"
+                  className="kv-action-card kv-action-card--primary"
+                  onClick={onGoToUpload}
+                >
+                  <strong>Upload X-ray</strong>
+                  <span>Start a new AI-assisted analysis workflow.</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="kv-action-card"
+                  onClick={onGoToHistory}
+                >
+                  <strong>Review History</strong>
+                  <span>Browse previous uploads and saved predictions.</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="kv-action-card"
+                  onClick={onGoToQuiz}
+                >
+                  <strong>Take Quiz</strong>
+                  <span>Practice KL grade recognition with guided cases.</span>
+                </button>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+    </AppShell>
   );
 }
 
