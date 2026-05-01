@@ -29,7 +29,7 @@ const stats = [
 
 function LandingPage({ onLogin, onRegister }: LandingPageProps) {
   return (
-    <div className="landing-page">
+    <div className="landing-page auth-screen-transition">
       {/* ── Nav ── */}
       <nav className="landing-nav">
         <div className="landing-nav-brand">
