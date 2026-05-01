@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
+
 type DashboardPageProps = {
   onLogout: () => void;
   onGoToUpload: () => void;
@@ -27,7 +31,7 @@ type SavedPrediction = {
   createdAt?: string;
 };
 
-const BACKEND = "http://localhost:4000";
+// const BACKEND = "http://localhost:4000";
 
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
@@ -66,7 +70,9 @@ function DashboardPage({
         }
 
         if (!imagesRes.ok) {
-          throw new Error(`Failed to load dashboard images (${imagesRes.status})`);
+          throw new Error(
+            `Failed to load dashboard images (${imagesRes.status})`,
+          );
         }
 
         if (!predictionsRes.ok) {
@@ -92,9 +98,7 @@ function DashboardPage({
         }
       } catch (err: unknown) {
         const message =
-          err instanceof Error
-            ? err.message
-            : "Could not load dashboard data.";
+          err instanceof Error ? err.message : "Could not load dashboard data.";
         setFetchError(message);
       } finally {
         setLoading(false);
@@ -137,7 +141,11 @@ function DashboardPage({
 
               <div className="dashboard-stat-card">
                 <p className="dashboard-stat-label">Avg Confidence Score</p>
-                <h2>{avgConfidence !== null ? `${avgConfidence.toFixed(2)}%` : "N/A"}</h2>
+                <h2>
+                  {avgConfidence !== null
+                    ? `${avgConfidence.toFixed(2)}%`
+                    : "N/A"}
+                </h2>
               </div>
 
               <div className="dashboard-stat-card">
@@ -159,12 +167,10 @@ function DashboardPage({
                   Profile
                 </button>
                 <button className="secondary-button" onClick={onGoToQuiz}>
-  Take Quiz
-</button>
+                  Take Quiz
+                </button>
               </div>
             </section>
-
-            
 
             <section className="dashboard-recent-section">
               <h2 className="upload-section-title">Recent Uploads</h2>
@@ -191,8 +197,8 @@ function DashboardPage({
 
                       <div className="dashboard-recent-meta">
                         <p className="dashboard-recent-name">
-  {`Case ${String(totalUploads - index).padStart(3, "0")}`}
-</p>
+                          {`Case ${String(totalUploads - index).padStart(3, "0")}`}
+                        </p>
                         <p className="dashboard-recent-date">
                           {img.createdAt
                             ? new Date(img.createdAt).toLocaleString()

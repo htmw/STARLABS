@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import type { GalleryImage } from "../components/ImageGallery";
 import Tooltip from "../components/Tooltip";
 
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
+
 type HistoryPageProps = {
   onLogout: () => void;
   onGoToDashboard: () => void;
@@ -9,7 +13,7 @@ type HistoryPageProps = {
   onOpenHistoryImage: (image: GalleryImage) => void;
 };
 
-const BACKEND = "http://localhost:4000";
+// const BACKEND = "http://localhost:4000";
 
 type SortOption = "newest" | "oldest" | "name-smart";
 type FilterOption =
@@ -235,7 +239,8 @@ function HistoryPage({
   const [exporting, setExporting] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
-  const [gradeFilter, setGradeFilter] = useState<GradeFilterOption>("all-grades");
+  const [gradeFilter, setGradeFilter] =
+    useState<GradeFilterOption>("all-grades");
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -318,7 +323,9 @@ function HistoryPage({
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || `CSV export failed (${res.status})`);
+        throw new Error(
+          errorData?.message || `CSV export failed (${res.status})`,
+        );
       }
 
       const blob = await res.blob();
@@ -427,7 +434,10 @@ function HistoryPage({
           </Tooltip>
         </div>
 
-        <div className="upload-gallery-toolbar" style={{ marginBottom: "16px" }}>
+        <div
+          className="upload-gallery-toolbar"
+          style={{ marginBottom: "16px" }}
+        >
           <div className="upload-toolbar-group">
             <label htmlFor="history-filter">
               <Tooltip text="Filter analyses by upload date.">
@@ -522,7 +532,10 @@ function HistoryPage({
               >
                 <div className="history-card-image">
                   {img.url ? (
-                    <img src={img.url} alt={img.originalName || "History image"} />
+                    <img
+                      src={img.url}
+                      alt={img.originalName || "History image"}
+                    />
                   ) : (
                     <div className="gallery-card-empty">No preview</div>
                   )}

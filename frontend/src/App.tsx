@@ -9,7 +9,11 @@ import DashboardPage from "./pages/DashboardPage";
 import HistoryPage from "./pages/HistoryPage";
 import QuizPage from "./pages/QuizPage";
 
-const BACKEND = "http://localhost:4000";
+import API_BASE_URL from "../src/config";
+
+const BACKEND = API_BASE_URL;
+
+// const BACKEND = "http://localhost:4000";
 
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
@@ -31,8 +35,12 @@ function App() {
   );
   const [authMode, setAuthMode] = useState<AuthMode>("landing");
   const [appView, setAppView] = useState<AppView>("dashboard");
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-const [predictionId, setPredictionId] = useState<string | undefined>(undefined);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null,
+  );
+  const [predictionId, setPredictionId] = useState<string | undefined>(
+    undefined,
+  );
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
@@ -53,11 +61,11 @@ const [predictionId, setPredictionId] = useState<string | undefined>(undefined);
   };
 
   const handleAnalysisReady = (result: AnalysisResult & { id?: string }) => {
-  const { id, ...rest } = result;
-  setPredictionId(id);
-  setAnalysisResult(rest);
-  setAppView("results");
-};
+    const { id, ...rest } = result;
+    setPredictionId(id);
+    setAnalysisResult(rest);
+    setAppView("results");
+  };
 
   const handleBackToUpload = () => {
     setAppView("upload");
@@ -76,83 +84,95 @@ const [predictionId, setPredictionId] = useState<string | undefined>(undefined);
   };
 
   const handleGoToQuiz = () => {
-  setAppView("quiz");
-};
+    setAppView("quiz");
+  };
 
   const handleOpenSavedAnalysis = async (image: PredictionImageRef) => {
-  try {
-    if (!image.id) throw new Error("Image id is missing.");
-
-    const res = await fetch(`${BACKEND}/api/v1/predictions`, {
-      headers: authHeader(),
-    });
-
-    if (res.status === 401) { handleLogout(); return; }
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => null);
-      throw new Error(errorData?.message || `Failed to load predictions (${res.status})`);
-    }
-
-    const predictions = await res.json();
-    const matched = predictions.find(
-      (prediction: { imageId: string; fileUrl: string; result: AnalysisResult }) =>
-        prediction.imageId === image.id,
-    );
-
-    if (!matched) throw new Error("No saved prediction found for this upload.");
-
-    const result: AnalysisResult = {
-      imageUrl: `${BACKEND}${matched.fileUrl}`,
-      fileName: image.originalName || "Uploaded image",
-      grade: matched.result.grade,
-      confidence: matched.result.confidence,
-      probabilities: matched.result.probabilities || [],
-      summary: matched.result.summary || "",
-      severityLabel: matched.result.severityLabel || "Unknown",
-      heatmapUrl: matched.result.heatmapUrl,
-      isMock: false,
-      similarCases: [],
-    };
-
-    setPredictionId(matched.id);
-setAnalysisResult(result);
-setAppView("results");
-
-    // fetch similar cases in background
     try {
-      const simRes = await fetch(`${BACKEND}/api/v1/similar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeader(),
-        },
-        body: JSON.stringify({ fileUrl: matched.fileUrl, grade: matched.result.grade }),
+      if (!image.id) throw new Error("Image id is missing.");
+
+      const res = await fetch(`${BACKEND}/api/v1/predictions`, {
+        headers: authHeader(),
       });
-      if (simRes.ok) {
-        const simData = await simRes.json();
-        setAnalysisResult((prev) =>
-          prev ? { ...prev, similarCases: simData.similarCases } : prev
+
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(
+          errorData?.message || `Failed to load predictions (${res.status})`,
         );
       }
+
+      const predictions = await res.json();
+      const matched = predictions.find(
+        (prediction: {
+          imageId: string;
+          fileUrl: string;
+          result: AnalysisResult;
+        }) => prediction.imageId === image.id,
+      );
+
+      if (!matched)
+        throw new Error("No saved prediction found for this upload.");
+
+      const result: AnalysisResult = {
+        imageUrl: `${BACKEND}${matched.fileUrl}`,
+        fileName: image.originalName || "Uploaded image",
+        grade: matched.result.grade,
+        confidence: matched.result.confidence,
+        probabilities: matched.result.probabilities || [],
+        summary: matched.result.summary || "",
+        severityLabel: matched.result.severityLabel || "Unknown",
+        heatmapUrl: matched.result.heatmapUrl,
+        isMock: false,
+        similarCases: [],
+      };
+
+      setPredictionId(matched.id);
+      setAnalysisResult(result);
+      setAppView("results");
+
+      // fetch similar cases in background
+      try {
+        const simRes = await fetch(`${BACKEND}/api/v1/similar`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeader(),
+          },
+          body: JSON.stringify({
+            fileUrl: matched.fileUrl,
+            grade: matched.result.grade,
+          }),
+        });
+        if (simRes.ok) {
+          const simData = await simRes.json();
+          setAnalysisResult((prev) =>
+            prev ? { ...prev, similarCases: simData.similarCases } : prev,
+          );
+        }
+      } catch (err) {
+        console.error("Similar cases fetch failed:", err);
+      }
     } catch (err) {
-      console.error("Similar cases fetch failed:", err);
+      console.error("Failed to open saved analysis:", err);
     }
-  } catch (err) {
-    console.error("Failed to open saved analysis:", err);
-  }
-};
+  };
 
   if (isAuthenticated) {
     if (appView === "results" && analysisResult) {
       return (
         <ResultsPage
-  result={analysisResult}
-  predictionId={predictionId}
-  onBackToUpload={handleBackToUpload}
-  onBackToDashboard={handleGoToDashboard}
-  onGoToHistory={handleGoToHistory}
-  onLogout={handleLogout}
-/>
+          result={analysisResult}
+          predictionId={predictionId}
+          onBackToUpload={handleBackToUpload}
+          onBackToDashboard={handleGoToDashboard}
+          onGoToHistory={handleGoToHistory}
+          onLogout={handleLogout}
+        />
       );
     }
 
@@ -180,13 +200,13 @@ setAppView("results");
     }
 
     if (appView === "quiz") {
-  return (
-    <QuizPage
-      onBackToDashboard={handleGoToDashboard}
-      onLogout={handleLogout}
-    />
-  );
-}
+      return (
+        <QuizPage
+          onBackToDashboard={handleGoToDashboard}
+          onLogout={handleLogout}
+        />
+      );
+    }
 
     return (
       <UploadPage
@@ -221,7 +241,5 @@ setAppView("results");
     />
   );
 }
-
-
 
 export default App;

@@ -68,7 +68,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      MODEL_PATH: /app/best_model_b4.pt
+      HUGGINGFACE_TOKEN: ${HUGGINGFACE_TOKEN}
     ports:
       - "8000:8000" # expose for local debugging; remove in prod
     # GPU support (optional): uncomment if you have NVIDIA Docker runtime
@@ -80,7 +80,7 @@ services:
     #           count: 1
     #           capabilities: [gpu]
     volumes:
-      - ../ml-service/best_model_b4.pt:/app/best_model_b4.pt:ro
+      # - ../ml-service/best_model_b4.pt:/app/best_model_b4.pt:ro
       - ../ml-service/kneevision_final.db:/app/kneevision_final.db:ro
       - ../ml-service/reference_cases:/app/reference_cases:ro
 volumes:

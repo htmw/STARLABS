@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
+// import ReactMarkdown from "react-markdown";
 import Tooltip from "../components/Tooltip";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,7 +118,7 @@ function ResultsPage({
     if (!predictionId) return;
     try {
       const token = localStorage.getItem("token");
-      await fetch("/api/v1/chat-history", {
+      await fetch(`${BACKEND}/api/v1/chat-history`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -143,7 +146,7 @@ function ResultsPage({
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("/api/v1/chat", {
+      const response = await fetch(`${BACKEND}/api/v1/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -178,7 +181,10 @@ function ResultsPage({
     } catch {
       setChatMessages([
         ...updatedMessages,
-        { role: "assistant", content: "Something went wrong. Please try again." },
+        {
+          role: "assistant",
+          content: "Something went wrong. Please try again.",
+        },
       ]);
     } finally {
       setChatLoading(false);
@@ -189,7 +195,6 @@ function ResultsPage({
   return (
     <main className="results-page">
       <div className="results-shell">
-
         {/* ── Header ── */}
         <header className="results-header">
           <div>
@@ -202,10 +207,18 @@ function ResultsPage({
             </p>
           </div>
           <div className="results-header-actions">
-            <button className="secondary-button" onClick={onBackToDashboard}>Dashboard</button>
-            <button className="secondary-button" onClick={onGoToHistory}>History</button>
-            <button className="secondary-button" onClick={onBackToUpload}>Upload</button>
-            <button className="secondary-button" onClick={onLogout}>Logout</button>
+            <button className="secondary-button" onClick={onBackToDashboard}>
+              Dashboard
+            </button>
+            <button className="secondary-button" onClick={onGoToHistory}>
+              History
+            </button>
+            <button className="secondary-button" onClick={onBackToUpload}>
+              Upload
+            </button>
+            <button className="secondary-button" onClick={onLogout}>
+              Logout
+            </button>
           </div>
         </header>
 
@@ -305,7 +318,9 @@ function ResultsPage({
             <div className="results-probability-list">
               {result.probabilities.map((item) => (
                 <div key={item.label} className="results-probability-row">
-                  <span className="results-probability-label">{item.label}</span>
+                  <span className="results-probability-label">
+                    {item.label}
+                  </span>
                   <div className="results-probability-track">
                     <div
                       className="results-probability-fill"
@@ -356,7 +371,9 @@ function ResultsPage({
                     <span>Explanation</span>
                   </Tooltip>
                 </span>
-                <strong>{result.heatmapUrl ? "Connected" : "Placeholder"}</strong>
+                <strong>
+                  {result.heatmapUrl ? "Connected" : "Placeholder"}
+                </strong>
               </div>
             </div>
             {result.isMock && (
@@ -401,26 +418,40 @@ function ResultsPage({
                     </div>
                   </div>
                   <div className="results-similar-meta">
-                    <div className="results-similar-grade">KL Grade {c.klGrade}</div>
+                    <div className="results-similar-grade">
+                      KL Grade {c.klGrade}
+                    </div>
                     <div className="results-similar-tags">
                       {c.osteophyteSeverity && (
-                        <span className="results-similar-tag">Osteophytes: {c.osteophyteSeverity}</span>
+                        <span className="results-similar-tag">
+                          Osteophytes: {c.osteophyteSeverity}
+                        </span>
                       )}
                       {c.jointSpaceNarrowing && (
-                        <span className="results-similar-tag">JSN: {c.jointSpaceNarrowing}</span>
+                        <span className="results-similar-tag">
+                          JSN: {c.jointSpaceNarrowing}
+                        </span>
                       )}
                       {c.subchondralSclerosis && (
-                        <span className="results-similar-tag">Sclerosis: {c.subchondralSclerosis}</span>
+                        <span className="results-similar-tag">
+                          Sclerosis: {c.subchondralSclerosis}
+                        </span>
                       )}
                       {c.boneTexture && (
-                        <span className="results-similar-tag">Texture: {c.boneTexture}</span>
+                        <span className="results-similar-tag">
+                          Texture: {c.boneTexture}
+                        </span>
                       )}
                       {c.affectedCompartment && (
-                        <span className="results-similar-tag">Compartment: {c.affectedCompartment}</span>
+                        <span className="results-similar-tag">
+                          Compartment: {c.affectedCompartment}
+                        </span>
                       )}
                     </div>
                     {c.overallFindings && (
-                      <p className="results-similar-findings">{c.overallFindings}</p>
+                      <p className="results-similar-findings">
+                        {c.overallFindings}
+                      </p>
                     )}
                   </div>
                 </article>
@@ -445,7 +476,11 @@ function ResultsPage({
               case compares to similar cases.
               {predictionId && (
                 <span className="results-chat-history-badge">
-                  {historyLoading ? " Loading history…" : chatMessages.length > 0 ? " · History restored" : ""}
+                  {historyLoading
+                    ? " Loading history…"
+                    : chatMessages.length > 0
+                      ? " · History restored"
+                      : ""}
                 </span>
               )}
             </p>
@@ -454,11 +489,14 @@ function ResultsPage({
           <div className="results-chat-messages">
             {chatMessages.length === 0 && !historyLoading && (
               <div className="results-chat-empty">
-                Try: "Why is this Grade 2?" or "How does this compare to the similar cases?"
+                Try: "Why is this Grade 2?" or "How does this compare to the
+                similar cases?"
               </div>
             )}
             {historyLoading && (
-              <div className="results-chat-empty">Loading previous conversation…</div>
+              <div className="results-chat-empty">
+                Loading previous conversation…
+              </div>
             )}
             {chatMessages.map((msg, i) => (
               <div
@@ -470,7 +508,7 @@ function ResultsPage({
                 </span>
                 {msg.role === "assistant" ? (
                   <div className="results-chat-markdown">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    {/* <ReactMarkdown>{msg.content}</ReactMarkdown> */}
                   </div>
                 ) : (
                   <p>{msg.content}</p>
@@ -506,7 +544,6 @@ function ResultsPage({
           </div>
         </section>
         {/* ── End Chat Section ─────────────────────────────────────────────── */}
-
       </div>
     </main>
   );

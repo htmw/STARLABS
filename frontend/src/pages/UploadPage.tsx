@@ -3,6 +3,9 @@ import ImageUploader from "../components/ImageUploader";
 import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
 import Tooltip from "../components/Tooltip";
 import type { AnalysisResult } from "./ResultsPage";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
 
 type UploadPageProps = {
   onLogout: () => void;
@@ -11,7 +14,7 @@ type UploadPageProps = {
   onOpenGalleryImage: (image: GalleryImage) => void;
 };
 
-const BACKEND = "http://localhost:4000";
+// const BACKEND = "http://localhost:4000";
 
 type SortOption = "newest" | "oldest" | "name-smart";
 type FilterOption =

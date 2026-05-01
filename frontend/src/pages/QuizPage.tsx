@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Difficulty = "easy" | "medium" | "hard";
@@ -41,7 +45,7 @@ type QuizPageProps = {
   onLogout: () => void;
 };
 
-const BACKEND = "http://localhost:4000";
+// const BACKEND = "http://localhost:4000";
 const TOTAL_QUESTIONS = 10;
 const TIME_PER_QUESTION = 30;
 
@@ -67,7 +71,9 @@ function authHeader(): Record<string, string> {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
-  const [screen, setScreen] = useState<"intro" | "quiz" | "feedback" | "summary" | "leaderboard">("intro");
+  const [screen, setScreen] = useState<
+    "intro" | "quiz" | "feedback" | "summary" | "leaderboard"
+  >("intro");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [question, setQuestion] = useState<Question | null>(null);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
@@ -78,7 +84,9 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
   const [maxStreak, setMaxStreak] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
   const [loading, setLoading] = useState(false);
-  const [gradeBreakdown, setGradeBreakdown] = useState<Record<number, { correct: number; total: number }>>({});
+  const [gradeBreakdown, setGradeBreakdown] = useState<
+    Record<number, { correct: number; total: number }>
+  >({});
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -107,9 +115,12 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
     setTimeLeft(TIME_PER_QUESTION);
     clearInterval(timerRef.current!);
     try {
-      const res = await fetch(`${BACKEND}/api/v1/quiz/question?difficulty=${difficulty}`, {
-        headers: authHeader(),
-      });
+      const res = await fetch(
+        `${BACKEND}/api/v1/quiz/question?difficulty=${difficulty}`,
+        {
+          headers: authHeader(),
+        },
+      );
       const data = await res.json();
       setQuestion(data);
       setScreen("quiz");
@@ -176,7 +187,7 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
   const handleNext = async () => {
     if (questionIndex + 1 >= TOTAL_QUESTIONS) {
       // save score
-    //   const finalScore = score + (answerResult?.correct ? 0 : 0); // already updated
+      //   const finalScore = score + (answerResult?.correct ? 0 : 0); // already updated
       await fetch(`${BACKEND}/api/v1/quiz/score`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeader() },
@@ -197,9 +208,12 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
   // ─── Leaderboard ──────────────────────────────────────────────────────────
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/v1/quiz/leaderboard?difficulty=${difficulty}`, {
-        headers: authHeader(),
-      });
+      const res = await fetch(
+        `${BACKEND}/api/v1/quiz/leaderboard?difficulty=${difficulty}`,
+        {
+          headers: authHeader(),
+        },
+      );
       const data = await res.json();
       setLeaderboard(data);
       setScreen("leaderboard");
@@ -230,13 +244,18 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
               <div className="results-badge">KL Grading Challenge</div>
               <h1>KneeVision Quiz</h1>
               <p className="results-subtitle">
-                Test your ability to identify Kellgren-Lawrence grades from real knee X-rays.
-                You'll get {TOTAL_QUESTIONS} questions with 30 seconds each.
+                Test your ability to identify Kellgren-Lawrence grades from real
+                knee X-rays. You'll get {TOTAL_QUESTIONS} questions with 30
+                seconds each.
               </p>
             </div>
             <div className="results-header-actions">
-              <button className="secondary-button" onClick={onBackToDashboard}>Dashboard</button>
-              <button className="secondary-button" onClick={onLogout}>Logout</button>
+              <button className="secondary-button" onClick={onBackToDashboard}>
+                Dashboard
+              </button>
+              <button className="secondary-button" onClick={onLogout}>
+                Logout
+              </button>
             </div>
           </header>
 
@@ -249,7 +268,9 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
                   className={`quiz-difficulty-btn ${difficulty === d ? "quiz-difficulty-btn--active" : ""}`}
                   onClick={() => setDifficulty(d)}
                 >
-                  <span className="quiz-difficulty-label">{d.charAt(0).toUpperCase() + d.slice(1)}</span>
+                  <span className="quiz-difficulty-label">
+                    {d.charAt(0).toUpperCase() + d.slice(1)}
+                  </span>
                   <span className="quiz-difficulty-desc">
                     {d === "easy" && "Grade 0 vs Grade 4 only"}
                     {d === "medium" && "All 5 grades"}
@@ -260,14 +281,26 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
             </div>
 
             <div className="quiz-rules">
-              <div className="quiz-rule"><p>{TOTAL_QUESTIONS} questions per session</p></div>
-              <div className="quiz-rule"><p>30 seconds per image</p></div>
-              <div className="quiz-rule"><p>Build streaks for consecutive correct answers</p></div>
-              <div className="quiz-rule"><p>Top scores saved to leaderboard</p></div>
+              <div className="quiz-rule">
+                <p>{TOTAL_QUESTIONS} questions per session</p>
+              </div>
+              <div className="quiz-rule">
+                <p>30 seconds per image</p>
+              </div>
+              <div className="quiz-rule">
+                <p>Build streaks for consecutive correct answers</p>
+              </div>
+              <div className="quiz-rule">
+                <p>Top scores saved to leaderboard</p>
+              </div>
             </div>
 
             <div className="quiz-intro-actions">
-              <button className="primary-button quiz-start-btn" onClick={fetchQuestion} disabled={loading}>
+              <button
+                className="primary-button quiz-start-btn"
+                onClick={fetchQuestion}
+                disabled={loading}
+              >
                 {loading ? "Loading…" : "Start Quiz"}
               </button>
               <button className="secondary-button" onClick={fetchLeaderboard}>
@@ -284,15 +317,24 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
   if (screen === "quiz" && question) {
     const grades = DIFFICULTY_GRADES[difficulty];
     const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
-    const timerColor = timeLeft > 15 ? "var(--success)" : timeLeft > 8 ? "#f59e0b" : "var(--error)";
+    const timerColor =
+      timeLeft > 15
+        ? "var(--success)"
+        : timeLeft > 8
+          ? "#f59e0b"
+          : "var(--error)";
 
     return (
       <main className="quiz-page">
         <div className="quiz-shell">
           <div className="quiz-topbar">
             <div className="quiz-progress-info">
-              <span>Question {questionIndex + 1} / {TOTAL_QUESTIONS}</span>
-              {streak >= 2 && <span className="quiz-streak">🔥 {streak} streak</span>}
+              <span>
+                Question {questionIndex + 1} / {TOTAL_QUESTIONS}
+              </span>
+              {streak >= 2 && (
+                <span className="quiz-streak">🔥 {streak} streak</span>
+              )}
             </div>
             <div className="quiz-score-chip">Score: {score}</div>
           </div>
@@ -309,10 +351,16 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
           </div>
 
           <div className="quiz-image-card">
-            <img src={question.imageBase64} alt="Knee X-ray" className="quiz-xray" />
+            <img
+              src={question.imageBase64}
+              alt="Knee X-ray"
+              className="quiz-xray"
+            />
           </div>
 
-          <p className="quiz-question-label">What is the KL Grade of this X-ray?</p>
+          <p className="quiz-question-label">
+            What is the KL Grade of this X-ray?
+          </p>
 
           <div className="quiz-grade-grid">
             {grades.map((g) => (
@@ -338,8 +386,14 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
     return (
       <main className="quiz-page">
         <div className="quiz-shell">
-          <div className={`quiz-feedback-banner ${answerResult.correct ? "quiz-feedback-banner--correct" : "quiz-feedback-banner--wrong"}`}>
-            {answerResult.correct ? "Correct!" : selectedGrade === -1 ? "Time's up!" : "✗ Incorrect"}
+          <div
+            className={`quiz-feedback-banner ${answerResult.correct ? "quiz-feedback-banner--correct" : "quiz-feedback-banner--wrong"}`}
+          >
+            {answerResult.correct
+              ? "Correct!"
+              : selectedGrade === -1
+                ? "Time's up!"
+                : "✗ Incorrect"}
           </div>
 
           <div className="quiz-feedback-card">
@@ -379,17 +433,32 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
             </div>
 
             {answerResult.overallFindings && (
-              <p className="quiz-findings-text">{answerResult.overallFindings}</p>
+              <p className="quiz-findings-text">
+                {answerResult.overallFindings}
+              </p>
             )}
 
             <div className="quiz-feedback-meta">
-              <span>Score: <strong>{score}</strong></span>
-              {streak >= 2 && <span>🔥 Streak: <strong>{streak}</strong></span>}
-              <span>Question {questionIndex + 1} of {TOTAL_QUESTIONS}</span>
+              <span>
+                Score: <strong>{score}</strong>
+              </span>
+              {streak >= 2 && (
+                <span>
+                  🔥 Streak: <strong>{streak}</strong>
+                </span>
+              )}
+              <span>
+                Question {questionIndex + 1} of {TOTAL_QUESTIONS}
+              </span>
             </div>
 
-            <button className="primary-button quiz-next-btn" onClick={handleNext}>
-              {questionIndex + 1 >= TOTAL_QUESTIONS ? "See Results" : "Next Question →"}
+            <button
+              className="primary-button quiz-next-btn"
+              onClick={handleNext}
+            >
+              {questionIndex + 1 >= TOTAL_QUESTIONS
+                ? "See Results"
+                : "Next Question →"}
             </button>
           </div>
         </div>
@@ -406,14 +475,18 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
           <div className="quiz-summary-card">
             <h1>Quiz Complete!</h1>
             <div className="quiz-summary-score">
-              <span className="quiz-summary-big">{score}/{TOTAL_QUESTIONS}</span>
+              <span className="quiz-summary-big">
+                {score}/{TOTAL_QUESTIONS}
+              </span>
               <span className="quiz-summary-pct">{accuracy}% accuracy</span>
             </div>
 
             <div className="quiz-summary-stats">
               <div className="quiz-stat">
                 <span>Difficulty</span>
-                <strong>{difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</strong>
+                <strong>
+                  {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                </strong>
               </div>
               <div className="quiz-stat">
                 <span>Best Streak</span>
@@ -421,7 +494,13 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
               </div>
               <div className="quiz-stat">
                 <span>Result</span>
-                <strong>{accuracy >= 80 ? "Excellent" : accuracy >= 60 ? "Good" : "📚 Keep Practicing"}</strong>
+                <strong>
+                  {accuracy >= 80
+                    ? "Excellent"
+                    : accuracy >= 60
+                      ? "Good"
+                      : "📚 Keep Practicing"}
+                </strong>
               </div>
             </div>
 
@@ -434,19 +513,29 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
                     <div className="quiz-breakdown-track">
                       <div
                         className="quiz-breakdown-fill"
-                        style={{ width: `${(data.correct / data.total) * 100}%` }}
+                        style={{
+                          width: `${(data.correct / data.total) * 100}%`,
+                        }}
                       />
                     </div>
-                    <span>{data.correct}/{data.total}</span>
+                    <span>
+                      {data.correct}/{data.total}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
             <div className="quiz-summary-actions">
-              <button className="primary-button" onClick={handleRestart}>Play Again</button>
-              <button className="secondary-button" onClick={fetchLeaderboard}>Leaderboard</button>
-              <button className="secondary-button" onClick={onBackToDashboard}>Dashboard</button>
+              <button className="primary-button" onClick={handleRestart}>
+                Play Again
+              </button>
+              <button className="secondary-button" onClick={fetchLeaderboard}>
+                Leaderboard
+              </button>
+              <button className="secondary-button" onClick={onBackToDashboard}>
+                Dashboard
+              </button>
             </div>
           </div>
         </div>
@@ -462,24 +551,42 @@ function QuizPage({ onBackToDashboard, onLogout }: QuizPageProps) {
           <header className="quiz-header">
             <div>
               <h1>Leaderboard</h1>
-              <p className="results-subtitle">Top scores for {difficulty} difficulty</p>
+              <p className="results-subtitle">
+                Top scores for {difficulty} difficulty
+              </p>
             </div>
             <div className="results-header-actions">
-              <button className="secondary-button" onClick={() => setScreen("intro")}>Back</button>
-              <button className="secondary-button" onClick={onBackToDashboard}>Dashboard</button>
+              <button
+                className="secondary-button"
+                onClick={() => setScreen("intro")}
+              >
+                Back
+              </button>
+              <button className="secondary-button" onClick={onBackToDashboard}>
+                Dashboard
+              </button>
             </div>
           </header>
 
           <div className="quiz-leaderboard">
             {leaderboard.length === 0 ? (
-              <p className="upload-gallery-empty">No scores yet for this difficulty. Be the first!</p>
+              <p className="upload-gallery-empty">
+                No scores yet for this difficulty. Be the first!
+              </p>
             ) : (
               leaderboard.map((entry) => (
-                <div key={entry.rank} className={`quiz-leaderboard-row ${entry.rank === 1 ? "quiz-leaderboard-row--gold" : entry.rank === 2 ? "quiz-leaderboard-row--silver" : entry.rank === 3 ? "quiz-leaderboard-row--bronze" : ""}`}>
+                <div
+                  key={entry.rank}
+                  className={`quiz-leaderboard-row ${entry.rank === 1 ? "quiz-leaderboard-row--gold" : entry.rank === 2 ? "quiz-leaderboard-row--silver" : entry.rank === 3 ? "quiz-leaderboard-row--bronze" : ""}`}
+                >
                   <span className="quiz-leaderboard-rank">#{entry.rank}</span>
                   <span className="quiz-leaderboard-email">{entry.email}</span>
-                  <span className="quiz-leaderboard-score">{entry.score}/{entry.total}</span>
-                  <span className="quiz-leaderboard-accuracy">{entry.accuracy}%</span>
+                  <span className="quiz-leaderboard-score">
+                    {entry.score}/{entry.total}
+                  </span>
+                  <span className="quiz-leaderboard-accuracy">
+                    {entry.accuracy}%
+                  </span>
                 </div>
               ))
             )}

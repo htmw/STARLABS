@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
 
 type UploadRecord = {
   id?: string;
@@ -14,7 +17,6 @@ type PresignResponse = {
   method?: string;
   headers?: Record<string, string>;
   fileUrl: string;
-  expiresIn?: number;
 };
 
 type Props = {
@@ -26,8 +28,8 @@ type Props = {
 type Toast = { msg: string; type: "success" | "error" } | null;
 
 const defaultAPI = {
-  presign: "/api/v1/uploads/presign",
-  register: "/api/v1/images",
+  presign: `${BACKEND}/api/v1/uploads/presign`,
+  register: `${BACKEND}/api/v1/images`,
 };
 
 const isDicom = (file: File) => file.name.toLowerCase().endsWith(".dcm");
@@ -46,12 +48,14 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
 
+  // Auto-dismiss toast after 3.5s
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Revoke object URLs on unmount
   useEffect(() => {
     return () => {
       files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
@@ -59,12 +63,15 @@ export default function ImageUploader({
   }, [files]);
 
   const onDrop = useCallback((accepted: File[]) => {
-    const next = accepted.map((f) =>
-      Object.assign(f, {
-        preview: !isDicom(f) ? URL.createObjectURL(f) : undefined,
-      }),
-    );
-    setFiles(next);
+    // Revoke previous previews before replacing to avoid mid-session memory leaks
+    setFiles((prev) => {
+      prev.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
+      return accepted.map((f) =>
+        Object.assign(f, {
+          preview: !isDicom(f) ? URL.createObjectURL(f) : undefined,
+        }),
+      );
+    });
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -78,63 +85,82 @@ export default function ImageUploader({
     },
   });
 
-  const canUpload = useMemo(
-    () => files.length > 0 && !uploading,
-    [files.length, uploading],
-  );
+  const canUpload = files.length > 0 && !uploading;
 
   const handleUpload = async () => {
     if (!files.length) return;
     setUploading(true);
+
+    // Read auth token once outside the loop
+    const headers = authHeader();
+
     try {
       const savedItems: UploadRecord[] = [];
+
       for (const file of files) {
         const contentType =
           file.type ||
           (isDicom(file) ? "application/dicom" : "application/octet-stream");
 
+        // Step 1: Presign — get upload URL + final fileUrl
         const presignRes = await fetch(presignEndpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeader() },
+          headers: { "Content-Type": "application/json", ...headers },
           body: JSON.stringify({ filename: file.name, contentType }),
         });
-        if (!presignRes.ok)
+
+        if (!presignRes.ok) {
           throw new Error(`Presign failed (${presignRes.status})`);
+        }
+
         const presign: PresignResponse = await presignRes.json();
 
-        const uploadRes = await fetch(presign.uploadUrl, {
+        // Step 2: PUT raw file bytes to the upload URL returned by presign.
+        // presign.uploadUrl is a relative path like /api/v1/uploads/:key
+        // so we prefix it with BACKEND to make it absolute for Render.
+        // presign.headers already contains the correct Content-Type.
+        const absoluteUploadUrl = presign.uploadUrl.startsWith("http")
+          ? presign.uploadUrl
+          : `${BACKEND}${presign.uploadUrl}`;
+
+        const uploadRes = await fetch(absoluteUploadUrl, {
           method: presign.method || "PUT",
-          headers: {
-            ...(presign.headers ?? { "Content-Type": contentType }),
-            ...authHeader(),
-          },
+          headers: presign.headers ?? { "Content-Type": contentType },
           body: file,
         });
-        if (!uploadRes.ok)
-          throw new Error(`Upload failed (${uploadRes.status})`);
 
+        if (!uploadRes.ok) {
+          throw new Error(`Upload failed (${uploadRes.status})`);
+        }
+
+        // Step 3: Register the image metadata in our backend
         const registerRes = await fetch(registerEndpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeader() },
+          headers: { "Content-Type": "application/json", ...headers },
           body: JSON.stringify({
             fileUrl: presign.fileUrl,
             originalName: file.name,
             contentType,
           }),
         });
-        if (!registerRes.ok)
+
+        if (!registerRes.ok) {
           throw new Error(`Register failed (${registerRes.status})`);
+        }
+
         savedItems.push(await registerRes.json());
       }
+
       onUploadSuccess?.(savedItems);
       setFiles([]);
       setToast({
         msg: `${savedItems.length} image${savedItems.length > 1 ? "s" : ""} uploaded!`,
         type: "success",
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      setToast({ msg: e?.message || "Upload failed", type: "error" });
+      const message = e instanceof Error ? e.message : "Upload failed";
+      setToast({ msg: message, type: "error" });
     } finally {
       setUploading(false);
     }

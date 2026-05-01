@@ -12,6 +12,13 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
+from huggingface_hub import hf_hub_download
+
+MODEL_PATH = hf_hub_download(
+    repo_id="kneevision/starlabs-knee-model",
+    filename="best_model_b4.pt",
+    token=os.environ.get("HUGGINGFACE_TOKEN")
+)
 
 app = FastAPI(title="KneeVision ML Service")
 
@@ -25,7 +32,7 @@ app.add_middleware(
 
 CLASS_NAMES = ["Grade 0", "Grade 1", "Grade 2", "Grade 3", "Grade 4"]
 TARGET_SIZE = 224
-MODEL_PATH = os.environ.get("MODEL_PATH", "best_model_b4.pt")
+# MODEL_PATH = os.environ.get("MODEL_PATH", "best_model_b4.pt")
 DB_PATH = os.environ.get("DB_PATH", "kneevision_final.db")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -47,8 +54,8 @@ class KOAEfficientNet(nn.Module):
         return self.backbone(x)
 
 
-if not os.path.exists(MODEL_PATH):
-    raise RuntimeError(f"Model file not found: {MODEL_PATH}")
+# if not os.path.exists(MODEL_PATH):
+#     raise RuntimeError(f"Model file not found: {MODEL_PATH}")
 
 model = KOAEfficientNet(num_classes=5).to(DEVICE)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
