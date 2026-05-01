@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import AppShell from "../components/AppShell";
 import Tooltip from "../components/Tooltip";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,8 +77,8 @@ function ResultsPage({
   const topProbability =
     result.probabilities.length > 0
       ? result.probabilities.reduce((best, item) =>
-        item.value > best.value ? item : best,
-      )
+          item.value > best.value ? item : best,
+        )
       : null;
 
   // ─── Chat state ───────────────────────────────────────────────────────────
@@ -100,9 +103,12 @@ function ResultsPage({
 
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`/api/v1/chat-history/${predictionId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `${BACKEND}/api/v1/chat-history/${predictionId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
 
         const data = await res.json();
 
@@ -135,7 +141,7 @@ function ResultsPage({
     try {
       const token = localStorage.getItem("token");
 
-      await fetch("/api/v1/chat-history", {
+      await fetch(`${BACKEND}/api/v1/chat-history`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -166,7 +172,7 @@ function ResultsPage({
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch("/api/v1/chat", {
+      const response = await fetch(`${BACKEND}/api/v1/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -227,7 +233,9 @@ function ResultsPage({
     >
       <section className="kv-results-hero">
         <div className="kv-results-hero-main">
-          <span className="kv-dashboard-eyebrow">AI-assisted analysis result</span>
+          <span className="kv-dashboard-eyebrow">
+            AI-assisted analysis result
+          </span>
 
           <h2>{result.grade}</h2>
           <p>{result.severityLabel}</p>
@@ -546,7 +554,6 @@ function ResultsPage({
               <p className="results-chat-typing">Analyzing…</p>
             </div>
           )}
-
         </div>
 
         <div className="results-chat-input-row">

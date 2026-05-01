@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
 
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
+
+// const BACKEND = "http://localhost:4000";
+
 type DashboardPageProps = {
   onLogout: () => void;
   onGoToUpload: () => void;
@@ -28,8 +34,6 @@ type SavedPrediction = {
   };
   createdAt?: string;
 };
-
-const BACKEND = "http://localhost:4000";
 
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
@@ -69,7 +73,9 @@ function DashboardPage({
         }
 
         if (!imagesRes.ok) {
-          throw new Error(`Failed to load dashboard images (${imagesRes.status})`);
+          throw new Error(
+            `Failed to load dashboard images (${imagesRes.status})`,
+          );
         }
 
         if (!predictionsRes.ok) {
@@ -95,9 +101,7 @@ function DashboardPage({
         }
       } catch (err: unknown) {
         const message =
-          err instanceof Error
-            ? err.message
-            : "Could not load dashboard data.";
+          err instanceof Error ? err.message : "Could not load dashboard data.";
         setFetchError(message);
       } finally {
         setLoading(false);
@@ -160,7 +164,9 @@ function DashboardPage({
             <div className="kv-stat-card">
               <span>Avg Confidence Score</span>
               <strong>
-                {avgConfidence !== null ? `${avgConfidence.toFixed(2)}%` : "N/A"}
+                {avgConfidence !== null
+                  ? `${avgConfidence.toFixed(2)}%`
+                  : "N/A"}
               </strong>
             </div>
 

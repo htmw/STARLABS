@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import AppShell from "../components/AppShell";
 import type { GalleryImage } from "../components/ImageGallery";
 import Tooltip from "../components/Tooltip";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
+
 
 type HistoryPageProps = {
   onLogout: () => void;
@@ -12,7 +16,7 @@ type HistoryPageProps = {
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
-const BACKEND = "http://localhost:4000";
+// const BACKEND = "http://localhost:4000";
 
 type SortOption = "newest" | "oldest" | "name-smart";
 type FilterOption =
