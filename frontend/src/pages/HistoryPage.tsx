@@ -1,19 +1,18 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import AppShell from "../components/AppShell";
 import type { GalleryImage } from "../components/ImageGallery";
 import Tooltip from "../components/Tooltip";
-
-import API_BASE_URL from "../config";
-
-const BACKEND = API_BASE_URL;
 
 type HistoryPageProps = {
   onLogout: () => void;
   onGoToDashboard: () => void;
   onGoToUpload: () => void;
+  onGoToQuiz: () => void;
   onOpenHistoryImage: (image: GalleryImage) => void;
+  onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
-// const BACKEND = "http://localhost:4000";
+const BACKEND = "http://localhost:4000";
 
 type SortOption = "newest" | "oldest" | "name-smart";
 type FilterOption =
@@ -226,11 +225,24 @@ function getExportFilename(response: Response) {
   return `predictions-${datePart}.csv`;
 }
 
+function getAverageConfidence(images: HistoryImage[]) {
+  const values = images
+    .map((img) => img.confidence)
+    .filter((value): value is number => typeof value === "number");
+
+  if (values.length === 0) return null;
+
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return total / values.length;
+}
+
 function HistoryPage({
   onLogout,
   onGoToDashboard,
   onGoToUpload,
+  onGoToQuiz,
   onOpenHistoryImage,
+  onSearchCase,
 }: HistoryPageProps) {
   const [images, setImages] = useState<HistoryImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,9 +335,7 @@ function HistoryPage({
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(
-          errorData?.message || `CSV export failed (${res.status})`,
-        );
+        throw new Error(errorData?.message || `CSV export failed (${res.status})`);
       }
 
       const blob = await res.blob();
@@ -387,45 +397,58 @@ function HistoryPage({
     return next;
   }, [images, sortBy, filterBy, gradeFilter]);
 
-  return (
-    <main className="upload-page">
-      <div className="upload-card">
-        <div className="upload-header">
-          <h1>KneeVision History</h1>
+  const averageConfidence = getAverageConfidence(images);
+  const predictedCount = images.filter((img) => img.grade).length;
 
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button className="secondary-button" onClick={onGoToDashboard}>
-              Dashboard
-            </button>
-            <button className="secondary-button" onClick={onGoToUpload}>
-              Upload
-            </button>
-            <button className="secondary-button" onClick={onLogout}>
-              Logout
-            </button>
-          </div>
+  return (
+    <AppShell
+      currentPage="history"
+      title="Analysis History"
+      subtitle="Browse saved uploads, filter AI predictions, and export results for review."
+      onGoToDashboard={onGoToDashboard}
+      onGoToUpload={onGoToUpload}
+      onGoToQuiz={onGoToQuiz}
+      onLogout={onLogout}
+      onSearchCase={onSearchCase}
+    >
+      <section className="kv-history-summary-grid">
+        <div className="kv-stat-card">
+          <span>Total Records</span>
+          <strong>{images.length}</strong>
         </div>
 
-        <p className="upload-subtitle">
-          Browse past uploads and reopen saved analysis results.
-        </p>
+        <div className="kv-stat-card">
+          <span>Predicted Cases</span>
+          <strong>{predictedCount}</strong>
+        </div>
 
-        <div
-          className="upload-section-heading-row"
-          style={{
-            alignItems: "center",
-          }}
-        >
-          <h2 className="upload-section-title">
-            <Tooltip text="Saved AI analyses for the current user.">
-              <span>Analysis History</span>
-            </Tooltip>
-          </h2>
+        <div className="kv-stat-card">
+          <span>Avg Confidence</span>
+          <strong>
+            {averageConfidence !== null
+              ? `${averageConfidence.toFixed(2)}%`
+              : "N/A"}
+          </strong>
+        </div>
+      </section>
+
+      <section className="kv-panel kv-history-panel">
+        <div className="kv-panel-header kv-history-panel-header">
+          <div>
+            <h3>
+              <Tooltip text="Saved AI analyses for the current user.">
+                <span>Saved Analysis Records</span>
+              </Tooltip>
+            </h3>
+            <p>
+              Filter by upload date, predicted KL grade, or filename order.
+            </p>
+          </div>
 
           <Tooltip text="Download prediction history for offline review.">
             <button
               type="button"
-              className="primary-button"
+              className="kv-history-export-button"
               onClick={handleExportCsv}
               disabled={exporting || loading}
             >
@@ -434,10 +457,7 @@ function HistoryPage({
           </Tooltip>
         </div>
 
-        <div
-          className="upload-gallery-toolbar"
-          style={{ marginBottom: "16px" }}
-        >
+        <div className="kv-history-toolbar">
           <div className="upload-toolbar-group">
             <label htmlFor="history-filter">
               <Tooltip text="Filter analyses by upload date.">
@@ -499,65 +519,57 @@ function HistoryPage({
         </div>
 
         {exportError ? (
-          <p
-            className="upload-gallery-empty"
-            style={{ color: "#c0392b", padding: "0 0 18px" }}
-          >
-            {exportError}
-          </p>
+          <div className="kv-history-error">{exportError}</div>
         ) : null}
 
         {loading ? (
-          <p className="upload-gallery-empty">Loading history…</p>
+          <div className="kv-empty-state">Loading history...</div>
         ) : fetchError ? (
-          <p className="upload-gallery-empty" style={{ color: "#c0392b" }}>
-            {fetchError}
-          </p>
+          <div className="kv-history-error">{fetchError}</div>
         ) : images.length === 0 ? (
-          <p className="upload-gallery-empty">
+          <div className="kv-empty-state">
             No analyses yet. Upload your first knee X-ray.
-          </p>
+          </div>
         ) : displayedImages.length === 0 ? (
-          <p className="upload-gallery-empty">
+          <div className="kv-empty-state">
             No analyses match the current filter.
-          </p>
+          </div>
         ) : (
-          <div className="history-grid">
+          <div className="kv-history-grid">
             {displayedImages.map((img) => (
               <button
                 key={img.id}
                 type="button"
-                className="history-card"
+                className="kv-history-card"
                 onClick={() => onOpenHistoryImage(img)}
               >
-                <div className="history-card-image">
+                <div className="kv-history-image">
                   {img.url ? (
-                    <img
-                      src={img.url}
-                      alt={img.originalName || "History image"}
-                    />
+                    <img src={img.url} alt={img.originalName || "History image"} />
                   ) : (
                     <div className="gallery-card-empty">No preview</div>
                   )}
                 </div>
 
-                <div className="history-card-body">
-                  <p className="history-card-name">
+                <div className="kv-history-card-body">
+                  <p className="kv-history-card-name">
                     {img.originalName || "Uploaded image"}
                   </p>
-                  <p className="history-card-date">
+
+                  <p className="kv-history-card-date">
                     {img.createdAt
                       ? new Date(img.createdAt).toLocaleString()
                       : "Unknown upload time"}
                   </p>
 
-                  <div className="history-badges">
-                    <span className="history-badge">
+                  <div className="kv-history-badges">
+                    <span className="kv-history-badge">
                       <Tooltip text="Predicted Kellgren-Lawrence grade.">
                         <span>{img.grade || "No grade"}</span>
                       </Tooltip>
                     </span>
-                    <span className="history-badge">
+
+                    <span className="kv-history-badge">
                       <Tooltip text="Model certainty for this prediction.">
                         <span>
                           {typeof img.confidence === "number"
@@ -566,7 +578,8 @@ function HistoryPage({
                         </span>
                       </Tooltip>
                     </span>
-                    <span className="history-badge">
+
+                    <span className="kv-history-badge kv-history-badge--soft">
                       <Tooltip text="Readable severity band from KL grade.">
                         <span>{img.severityLabel || "Unknown"}</span>
                       </Tooltip>
@@ -577,8 +590,8 @@ function HistoryPage({
             ))}
           </div>
         )}
-      </div>
-    </main>
+      </section>
+    </AppShell>
   );
 }
 

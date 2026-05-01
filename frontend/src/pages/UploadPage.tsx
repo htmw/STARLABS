@@ -1,20 +1,21 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import AppShell from "../components/AppShell";
 import ImageUploader from "../components/ImageUploader";
 import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
 import Tooltip from "../components/Tooltip";
 import type { AnalysisResult } from "./ResultsPage";
-import API_BASE_URL from "../config";
-
-const BACKEND = API_BASE_URL;
 
 type UploadPageProps = {
   onLogout: () => void;
   onAnalysisReady: (result: AnalysisResult) => void;
   onGoToDashboard: () => void;
+  onGoToHistory: () => void;
+  onGoToQuiz: () => void;
   onOpenGalleryImage: (image: GalleryImage) => void;
+  onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
-// const BACKEND = "http://localhost:4000";
+const BACKEND = "http://localhost:4000";
 
 type SortOption = "newest" | "oldest" | "name-smart";
 type FilterOption =
@@ -60,7 +61,7 @@ function getStartOfToday() {
 
 function getStartOfWeek() {
   const today = getStartOfToday();
-  const day = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const day = today.getDay();
   const diffToMonday = day === 0 ? 6 : day - 1;
   const start = new Date(today);
   start.setDate(today.getDate() - diffToMonday);
@@ -209,7 +210,10 @@ function UploadPage({
   onLogout,
   onAnalysisReady,
   onGoToDashboard,
+  onGoToHistory,
+  onGoToQuiz,
   onOpenGalleryImage,
+  onSearchCase,
 }: UploadPageProps) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -336,41 +340,91 @@ function UploadPage({
   }, [images, sortBy, filterBy]);
 
   return (
-    <main className="upload-page">
-      <div className="upload-card">
-        <div className="upload-header">
-          <h1>KneeVision</h1>
-
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button className="secondary-button" onClick={onGoToDashboard}>
-              Dashboard
-            </button>
-            <button className="secondary-button" onClick={onLogout}>
-              Logout
-            </button>
+    <AppShell
+      currentPage="upload"
+      title="Upload X-ray"
+      subtitle="Upload a knee X-ray image and run AI-assisted osteoarthritis severity analysis."
+      onGoToDashboard={onGoToDashboard}
+      onGoToHistory={onGoToHistory}
+      onGoToQuiz={onGoToQuiz}
+      onLogout={onLogout}
+      onSearchCase={onSearchCase}
+    >
+      <section className="kv-upload-grid">
+        <div className="kv-panel kv-upload-main-panel">
+          <div className="kv-panel-header">
+            <div>
+              <h3>
+                <Tooltip text="Images are standardized before model analysis.">
+                  <span>New X-ray Analysis</span>
+                </Tooltip>
+              </h3>
+              <p>
+                Select a JPG or PNG knee X-ray image. After upload, KneeVision
+                will automatically run the AI model and open the result page.
+              </p>
+            </div>
           </div>
+
+          <ImageUploader onUploadSuccess={handleUploadSuccess} />
+
+          {predicting ? (
+            <div className="kv-upload-status">
+              Running AI analysis. This may take a few seconds...
+            </div>
+          ) : null}
+
+          {fetchError ? (
+            <div className="kv-upload-error">{fetchError}</div>
+          ) : null}
         </div>
 
-        <p className="upload-subtitle">
-          <Tooltip text="Images are standardized before model analysis.">
-            <span>Upload and review knee X-ray images</span>
-          </Tooltip>
-        </p>
+        <aside className="kv-panel kv-upload-guide-panel">
+          <div className="kv-panel-header">
+            <div>
+              <h3>Upload Guide</h3>
+              <p>Recommended input checklist for better analysis quality.</p>
+            </div>
+          </div>
 
-        <ImageUploader onUploadSuccess={handleUploadSuccess} />
+          <div className="kv-upload-guide-list">
+            <div className="kv-upload-guide-item">
+              <span>01</span>
+              <div>
+                <strong>Use clear X-ray images</strong>
+                <p>Avoid heavily blurred or cropped knee joint images.</p>
+              </div>
+            </div>
 
-        {predicting ? (
-          <p className="upload-gallery-empty" style={{ marginTop: "16px" }}>
-            Running AI analysis...
-          </p>
-        ) : null}
+            <div className="kv-upload-guide-item">
+              <span>02</span>
+              <div>
+                <strong>Review confidence score</strong>
+                <p>Confidence supports interpretation, but it is not diagnosis.</p>
+              </div>
+            </div>
 
-        <div className="upload-section-heading-row">
-          <h2 className="upload-section-title">
-            <Tooltip text="Previously uploaded X-rays for this account.">
-              <span>Gallery</span>
-            </Tooltip>
-          </h2>
+            <div className="kv-upload-guide-item">
+              <span>03</span>
+              <div>
+                <strong>Check saved history</strong>
+                <p>Uploaded cases and predictions can be reviewed later.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section className="kv-panel kv-upload-gallery-panel">
+        <div className="kv-panel-header kv-upload-gallery-header">
+          <div>
+            <h3>
+              <Tooltip text="Previously uploaded X-rays for this account.">
+                <span>Gallery</span>
+              </Tooltip>
+            </h3>
+            <p>Browse, filter, and reopen previous uploads.</p>
+          </div>
 
           <div className="upload-gallery-toolbar">
             <div className="upload-toolbar-group">
@@ -414,10 +468,6 @@ function UploadPage({
 
         {loading ? (
           <p className="upload-gallery-empty">Loading images…</p>
-        ) : fetchError ? (
-          <p className="upload-gallery-empty" style={{ color: "#c0392b" }}>
-            {fetchError}
-          </p>
         ) : images.length === 0 ? (
           <p className="upload-gallery-empty">
             No images yet. Upload your first X-ray above.
@@ -432,8 +482,8 @@ function UploadPage({
             onImageClick={onOpenGalleryImage}
           />
         )}
-      </div>
-    </main>
+      </section>
+    </AppShell>
   );
 }
 

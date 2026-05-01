@@ -1,9 +1,5 @@
 import { useState } from "react";
 
-import API_BASE_URL from "../config";
-
-const BACKEND = API_BASE_URL;
-
 type LoginResponse = {
   token?: string;
   user?: {
@@ -42,7 +38,7 @@ function LoginForm({ onLoginSuccess }: LoginFormProps) {
     try {
       setLoading(true);
 
-      const response = await fetch(`${BACKEND}/api/v1/auth/login`, {
+      const response = await fetch("http://localhost:4000/api/v1/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
