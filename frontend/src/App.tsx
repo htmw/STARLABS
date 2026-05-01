@@ -7,6 +7,7 @@ import UploadPage from "./pages/UploadPage";
 import ResultsPage, { type AnalysisResult } from "./pages/ResultsPage";
 import DashboardPage from "./pages/DashboardPage";
 import HistoryPage from "./pages/HistoryPage";
+import QuizPage from "./pages/QuizPage";
 
 const BACKEND = "http://localhost:4000";
 
@@ -16,7 +17,7 @@ function authHeader(): Record<string, string> {
 }
 
 type AuthMode = "landing" | "login" | "register";
-type AppView = "dashboard" | "upload" | "results" | "history";
+type AppView = "dashboard" | "upload" | "results" | "history" | "quiz";
 
 type PredictionImageRef = {
   id?: string;
@@ -30,9 +31,8 @@ function App() {
   );
   const [authMode, setAuthMode] = useState<AuthMode>("landing");
   const [appView, setAppView] = useState<AppView>("dashboard");
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
-    null,
-  );
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+const [predictionId, setPredictionId] = useState<string | undefined>(undefined);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
@@ -52,10 +52,12 @@ function App() {
     setAuthMode("login");
   };
 
-  const handleAnalysisReady = (result: AnalysisResult) => {
-    setAnalysisResult(result);
-    setAppView("results");
-  };
+  const handleAnalysisReady = (result: AnalysisResult & { id?: string }) => {
+  const { id, ...rest } = result;
+  setPredictionId(id);
+  setAnalysisResult(rest);
+  setAppView("results");
+};
 
   const handleBackToUpload = () => {
     setAppView("upload");
@@ -72,6 +74,10 @@ function App() {
   const handleGoToHistory = () => {
     setAppView("history");
   };
+
+  const handleGoToQuiz = () => {
+  setAppView("quiz");
+};
 
   const handleOpenSavedAnalysis = async (image: PredictionImageRef) => {
   try {
@@ -108,8 +114,9 @@ function App() {
       similarCases: [],
     };
 
-    setAnalysisResult(result);
-    setAppView("results");
+    setPredictionId(matched.id);
+setAnalysisResult(result);
+setAppView("results");
 
     // fetch similar cases in background
     try {
@@ -139,12 +146,13 @@ function App() {
     if (appView === "results" && analysisResult) {
       return (
         <ResultsPage
-          result={analysisResult}
-          onBackToUpload={handleBackToUpload}
-          onBackToDashboard={handleGoToDashboard}
-          onGoToHistory={handleGoToHistory}
-          onLogout={handleLogout}
-        />
+  result={analysisResult}
+  predictionId={predictionId}
+  onBackToUpload={handleBackToUpload}
+  onBackToDashboard={handleGoToDashboard}
+  onGoToHistory={handleGoToHistory}
+  onLogout={handleLogout}
+/>
       );
     }
 
@@ -154,6 +162,7 @@ function App() {
           onLogout={handleLogout}
           onGoToUpload={handleGoToUpload}
           onGoToHistory={handleGoToHistory}
+          onGoToQuiz={handleGoToQuiz}
           onOpenRecentUpload={handleOpenSavedAnalysis}
         />
       );
@@ -169,6 +178,15 @@ function App() {
         />
       );
     }
+
+    if (appView === "quiz") {
+  return (
+    <QuizPage
+      onBackToDashboard={handleGoToDashboard}
+      onLogout={handleLogout}
+    />
+  );
+}
 
     return (
       <UploadPage
@@ -203,5 +221,7 @@ function App() {
     />
   );
 }
+
+
 
 export default App;
