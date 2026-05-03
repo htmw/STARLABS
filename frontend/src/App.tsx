@@ -9,7 +9,10 @@ import DashboardPage from "./pages/DashboardPage";
 import HistoryPage from "./pages/HistoryPage";
 import QuizPage from "./pages/QuizPage";
 
-const BACKEND = "http://localhost:4000";
+import API_BASE_URL from "../src/config";
+
+const BACKEND = API_BASE_URL;
+// const BACKEND = "http://localhost:4000";
 
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
@@ -99,8 +102,9 @@ function App() {
   );
   const [authMode, setAuthMode] = useState<AuthMode>("landing");
   const [appView, setAppView] = useState<AppView>("dashboard");
-  const [analysisResult, setAnalysisResult] =
-    useState<AnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null,
+  );
   const [predictionId, setPredictionId] = useState<string | undefined>(
     undefined,
   );

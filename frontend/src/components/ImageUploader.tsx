@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
 
 type UploadRecord = {
   id?: string;
@@ -26,8 +29,8 @@ type Props = {
 type Toast = { msg: string; type: "success" | "error" } | null;
 
 const defaultAPI = {
-  presign: "/api/v1/uploads/presign",
-  register: "/api/v1/images",
+  presign: `${BACKEND}/api/v1/uploads/presign`,
+  register: `${BACKEND}/api/v1/images`,
 };
 
 const isDicom = (file: File) => file.name.toLowerCase().endsWith(".dcm");
@@ -100,16 +103,19 @@ export default function ImageUploader({
         });
         if (!presignRes.ok)
           throw new Error(`Presign failed (${presignRes.status})`);
+
         const presign: PresignResponse = await presignRes.json();
 
-        const uploadRes = await fetch(presign.uploadUrl, {
+        const absoluteUploadUrl = presign.uploadUrl.startsWith("http")
+          ? presign.uploadUrl
+          : `${BACKEND}${presign.uploadUrl}`;
+
+        const uploadRes = await fetch(absoluteUploadUrl, {
           method: presign.method || "PUT",
-          headers: {
-            ...(presign.headers ?? { "Content-Type": contentType }),
-            ...authHeader(),
-          },
+          headers: presign.headers ?? { "Content-Type": contentType },
           body: file,
         });
+
         if (!uploadRes.ok)
           throw new Error(`Upload failed (${uploadRes.status})`);
 

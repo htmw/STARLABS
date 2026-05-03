@@ -1,5 +1,9 @@
 import { useState } from "react";
 
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
+
 type RegisterResponse = {
   user?: {
     id?: string;
@@ -45,7 +49,7 @@ function RegisterForm({ onRegistrationSuccess }: RegisterFormProps) {
     try {
       setLoading(true);
 
-      const response = await fetch("http://localhost:4000/api/v1/auth/register", {
+      const response = await fetch(`${BACKEND}/api/v1/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

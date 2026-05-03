@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import AppShell from "../components/AppShell";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,7 +48,7 @@ type QuizPageProps = {
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
-const BACKEND = "http://localhost:4000";
+// const BACKEND = "http://localhost:4000";
 const TOTAL_QUESTIONS = 10;
 const TIME_PER_QUESTION = 30;
 
@@ -295,7 +298,10 @@ function QuizPage({
                 {loading ? "Loading..." : "Start Quiz"}
               </button>
 
-              <button className="kv-secondary-action" onClick={fetchLeaderboard}>
+              <button
+                className="kv-secondary-action"
+                onClick={fetchLeaderboard}
+              >
                 View Leaderboard
               </button>
             </div>
@@ -315,8 +321,9 @@ function QuizPage({
               {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
                 <button
                   key={d}
-                  className={`kv-quiz-difficulty-card ${difficulty === d ? "kv-quiz-difficulty-card--active" : ""
-                    }`}
+                  className={`kv-quiz-difficulty-card ${
+                    difficulty === d ? "kv-quiz-difficulty-card--active" : ""
+                  }`}
                   onClick={() => setDifficulty(d)}
                 >
                   <strong>{formatDifficulty(d)}</strong>
@@ -370,7 +377,11 @@ function QuizPage({
     const grades = DIFFICULTY_GRADES[difficulty];
     const timerPct = (timeLeft / TIME_PER_QUESTION) * 100;
     const timerColor =
-      timeLeft > 15 ? "var(--success)" : timeLeft > 8 ? "#f59e0b" : "var(--error)";
+      timeLeft > 15
+        ? "var(--success)"
+        : timeLeft > 8
+          ? "#f59e0b"
+          : "var(--error)";
 
     return renderShell(
       <section className="kv-quiz-play-layout">
@@ -401,7 +412,11 @@ function QuizPage({
           </div>
 
           <div className="kv-quiz-image-card">
-            <img src={question.imageBase64} alt="Knee X-ray" className="quiz-xray" />
+            <img
+              src={question.imageBase64}
+              alt="Knee X-ray"
+              className="quiz-xray"
+            />
           </div>
         </article>
 
@@ -417,8 +432,9 @@ function QuizPage({
             {grades.map((g) => (
               <button
                 key={g}
-                className={`kv-quiz-grade-btn ${selectedGrade === g ? "kv-quiz-grade-btn--selected" : ""
-                  }`}
+                className={`kv-quiz-grade-btn ${
+                  selectedGrade === g ? "kv-quiz-grade-btn--selected" : ""
+                }`}
                 onClick={() => {
                   setSelectedGrade(g);
                   handleSubmit(g);
@@ -439,10 +455,11 @@ function QuizPage({
     return renderShell(
       <section className="kv-quiz-feedback-layout">
         <div
-          className={`kv-quiz-feedback-banner ${answerResult.correct
-            ? "kv-quiz-feedback-banner--correct"
-            : "kv-quiz-feedback-banner--wrong"
-            }`}
+          className={`kv-quiz-feedback-banner ${
+            answerResult.correct
+              ? "kv-quiz-feedback-banner--correct"
+              : "kv-quiz-feedback-banner--wrong"
+          }`}
         >
           {answerResult.correct
             ? "Correct!"
@@ -516,7 +533,10 @@ function QuizPage({
             </span>
           </div>
 
-          <button className="kv-primary-action kv-quiz-next-btn" onClick={handleNext}>
+          <button
+            className="kv-primary-action kv-quiz-next-btn"
+            onClick={handleNext}
+          >
             {questionIndex + 1 >= TOTAL_QUESTIONS
               ? "See Results"
               : "Next Question →"}
@@ -536,7 +556,9 @@ function QuizPage({
         <article className="kv-panel kv-quiz-summary-card">
           <span className="kv-dashboard-eyebrow">Quiz complete</span>
 
-          <h2>{score}/{TOTAL_QUESTIONS}</h2>
+          <h2>
+            {score}/{TOTAL_QUESTIONS}
+          </h2>
           <p>{accuracy}% accuracy</p>
 
           <div className="quiz-summary-stats">
@@ -590,7 +612,10 @@ function QuizPage({
               Play Again
             </button>
 
-            <button className="kv-secondary-light-action" onClick={fetchLeaderboard}>
+            <button
+              className="kv-secondary-light-action"
+              onClick={fetchLeaderboard}
+            >
               Leaderboard
             </button>
 
@@ -634,14 +659,15 @@ function QuizPage({
             leaderboard.map((entry) => (
               <div
                 key={entry.rank}
-                className={`quiz-leaderboard-row ${entry.rank === 1
-                  ? "quiz-leaderboard-row--gold"
-                  : entry.rank === 2
-                    ? "quiz-leaderboard-row--silver"
-                    : entry.rank === 3
-                      ? "quiz-leaderboard-row--bronze"
-                      : ""
-                  }`}
+                className={`quiz-leaderboard-row ${
+                  entry.rank === 1
+                    ? "quiz-leaderboard-row--gold"
+                    : entry.rank === 2
+                      ? "quiz-leaderboard-row--silver"
+                      : entry.rank === 3
+                        ? "quiz-leaderboard-row--bronze"
+                        : ""
+                }`}
               >
                 <span className="quiz-leaderboard-rank">#{entry.rank}</span>
                 <span className="quiz-leaderboard-email">{entry.email}</span>

@@ -4,6 +4,9 @@ import ImageUploader from "../components/ImageUploader";
 import ImageGallery, { type GalleryImage } from "../components/ImageGallery";
 import Tooltip from "../components/Tooltip";
 import type { AnalysisResult } from "./ResultsPage";
+import API_BASE_URL from "../config";
+
+const BACKEND = API_BASE_URL;
 
 type UploadPageProps = {
   onLogout: () => void;
@@ -15,7 +18,7 @@ type UploadPageProps = {
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
-const BACKEND = "http://localhost:4000";
+// const BACKEND = "http://localhost:4000";
 
 type SortOption = "newest" | "oldest" | "name-smart";
 type FilterOption =
@@ -400,7 +403,9 @@ function UploadPage({
               <span>02</span>
               <div>
                 <strong>Review confidence score</strong>
-                <p>Confidence supports interpretation, but it is not diagnosis.</p>
+                <p>
+                  Confidence supports interpretation, but it is not diagnosis.
+                </p>
               </div>
             </div>
 
