@@ -6,7 +6,6 @@ import API_BASE_URL from "../config";
 
 const BACKEND = API_BASE_URL;
 
-
 type HistoryPageProps = {
   onLogout: () => void;
   onGoToDashboard: () => void;
@@ -15,8 +14,6 @@ type HistoryPageProps = {
   onOpenHistoryImage: (image: GalleryImage) => void;
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
-
-// const BACKEND = "http://localhost:4000";
 
 type SortOption = "newest" | "oldest" | "name-smart";
 type FilterOption =
@@ -253,6 +250,9 @@ function HistoryPage({
   const [fetchError, setFetchError] = useState("");
   const [exportError, setExportError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<HistoryImage | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
   const [gradeFilter, setGradeFilter] =
@@ -339,7 +339,9 @@ function HistoryPage({
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || `CSV export failed (${res.status})`);
+        throw new Error(
+          errorData?.message || `CSV export failed (${res.status})`,
+        );
       }
 
       const blob = await res.blob();
@@ -360,6 +362,55 @@ function HistoryPage({
       setExportError(message);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleRequestDelete = (image: HistoryImage) => {
+    if (!image.id) {
+      setDeleteError("Missing image id. Could not delete this analysis.");
+      return;
+    }
+
+    setDeleteError("");
+    setPendingDelete(image);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete?.id) {
+      setDeleteError("Missing image id. Could not delete this analysis.");
+      setPendingDelete(null);
+      return;
+    }
+
+    const imageId = pendingDelete.id;
+
+    try {
+      setDeleteError("");
+      setDeletingId(imageId);
+
+      const res = await fetch(`${BACKEND}/api/v1/images/${imageId}`, {
+        method: "DELETE",
+        headers: authHeader(),
+      });
+
+      if (res.status === 401) {
+        onLogout();
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || `Delete failed (${res.status})`);
+      }
+
+      setImages((current) => current.filter((img) => img.id !== imageId));
+      setPendingDelete(null);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Could not delete this analysis.";
+      setDeleteError(message);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -526,6 +577,10 @@ function HistoryPage({
           <div className="kv-history-error">{exportError}</div>
         ) : null}
 
+        {deleteError ? (
+          <div className="kv-history-error">{deleteError}</div>
+        ) : null}
+
         {loading ? (
           <div className="kv-empty-state">Loading history...</div>
         ) : fetchError ? (
@@ -541,15 +596,24 @@ function HistoryPage({
         ) : (
           <div className="kv-history-grid">
             {displayedImages.map((img) => (
-              <button
+              <div
                 key={img.id}
-                type="button"
                 className="kv-history-card"
+                role="button"
+                tabIndex={0}
                 onClick={() => onOpenHistoryImage(img)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    onOpenHistoryImage(img);
+                  }
+                }}
               >
                 <div className="kv-history-image">
                   {img.url ? (
-                    <img src={img.url} alt={img.originalName || "History image"} />
+                    <img
+                      src={img.url}
+                      alt={img.originalName || "History image"}
+                    />
                   ) : (
                     <div className="gallery-card-empty">No preview</div>
                   )}
@@ -589,12 +653,74 @@ function HistoryPage({
                       </Tooltip>
                     </span>
                   </div>
+
+                  <button
+                    type="button"
+                    className="kv-history-delete-button"
+                    disabled={deletingId === img.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRequestDelete(img);
+                    }}
+                  >
+                    {deletingId === img.id ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
       </section>
+
+      {pendingDelete ? (
+        <div
+          className="kv-confirm-backdrop"
+          role="presentation"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="kv-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="kv-confirm-icon">!</div>
+
+            <div className="kv-confirm-content">
+              <h3 id="delete-confirm-title">Delete this analysis?</h3>
+              <p>
+                This will remove the uploaded image, its AI prediction, and any
+                related chat history. This action cannot be undone.
+              </p>
+
+              <div className="kv-confirm-file">
+                {pendingDelete.originalName || "Uploaded image"}
+              </div>
+            </div>
+
+            <div className="kv-confirm-actions">
+              <button
+                type="button"
+                className="kv-confirm-cancel"
+                onClick={() => setPendingDelete(null)}
+                disabled={deletingId === pendingDelete.id}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="kv-confirm-delete"
+                onClick={handleConfirmDelete}
+                disabled={deletingId === pendingDelete.id}
+              >
+                {deletingId === pendingDelete.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }

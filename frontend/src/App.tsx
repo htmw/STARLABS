@@ -8,6 +8,7 @@ import ResultsPage, { type AnalysisResult } from "./pages/ResultsPage";
 import DashboardPage from "./pages/DashboardPage";
 import HistoryPage from "./pages/HistoryPage";
 import QuizPage from "./pages/QuizPage";
+import SettingsPage from "./pages/SettingsPage";
 
 import API_BASE_URL from "../src/config";
 
@@ -20,7 +21,13 @@ function authHeader(): Record<string, string> {
 }
 
 type AuthMode = "landing" | "login" | "register";
-type AppView = "dashboard" | "upload" | "results" | "history" | "quiz";
+type AppView =
+  | "dashboard"
+  | "upload"
+  | "results"
+  | "history"
+  | "quiz"
+  | "settings";
 
 type PredictionImageRef = {
   id?: string;
@@ -110,6 +117,43 @@ function App() {
   );
 
   useEffect(() => {
+    const storedTheme = localStorage.getItem("kv-theme");
+    const safeTheme = storedTheme === "dark" ? "dark" : "light";
+
+    document.documentElement.setAttribute("data-theme", safeTheme);
+
+    if (localStorage.getItem("kv-compact-layout") === "true") {
+      document.documentElement.classList.add("kv-compact-mode");
+    } else {
+      document.documentElement.classList.remove("kv-compact-mode");
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalNavigate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ view?: AppView }>;
+      const nextView = customEvent.detail?.view;
+
+      if (
+        nextView === "dashboard" ||
+        nextView === "upload" ||
+        nextView === "results" ||
+        nextView === "history" ||
+        nextView === "quiz" ||
+        nextView === "settings"
+      ) {
+        setAppView(nextView);
+      }
+    };
+
+    window.addEventListener("kv:navigate", handleGlobalNavigate);
+
+    return () => {
+      window.removeEventListener("kv:navigate", handleGlobalNavigate);
+    };
+  }, []);
+
+  useEffect(() => {
     const scrollToTop = () => {
       window.scrollTo({
         top: 0,
@@ -174,6 +218,10 @@ function App() {
 
   const handleGoToQuiz = () => {
     setAppView("quiz");
+  };
+
+  const handleGoToSettings = () => {
+    setAppView("settings");
   };
 
   const handleOpenSavedAnalysis = async (
@@ -381,6 +429,19 @@ function App() {
           onGoToUpload={handleGoToUpload}
           onGoToHistory={handleGoToHistory}
           onLogout={handleLogout}
+          onSearchCase={handleSearchCase}
+        />
+      );
+    }
+
+    if (appView === "settings") {
+      return (
+        <SettingsPage
+          onLogout={handleLogout}
+          onGoToDashboard={handleGoToDashboard}
+          onGoToUpload={handleGoToUpload}
+          onGoToHistory={handleGoToHistory}
+          onGoToQuiz={handleGoToQuiz}
           onSearchCase={handleSearchCase}
         />
       );

@@ -1,6 +1,13 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 
-type AppPage = "dashboard" | "upload" | "history" | "results" | "quiz";
+type AppPage =
+    | "dashboard"
+    | "upload"
+    | "history"
+    | "results"
+    | "quiz"
+    | "profile"
+    | "settings";
 
 type SearchResult = {
     ok: boolean;
@@ -16,6 +23,8 @@ type AppShellProps = {
     onGoToUpload?: () => void;
     onGoToHistory?: () => void;
     onGoToQuiz?: () => void;
+    onGoToProfile?: () => void;
+    onGoToSettings?: () => void;
     onLogout: () => void;
     onSearchCase?: (query: string) => Promise<SearchResult>;
 };
@@ -36,6 +45,16 @@ function getInitial(label: string) {
     return label.trim().charAt(0).toUpperCase() || "U";
 }
 
+function getStoredCollapsedState(key: string, fallback = false) {
+    try {
+        const stored = localStorage.getItem(key);
+        if (stored === null) return fallback;
+        return stored === "true";
+    } catch {
+        return fallback;
+    }
+}
+
 function AppShell({
     currentPage,
     title,
@@ -45,6 +64,8 @@ function AppShell({
     onGoToUpload,
     onGoToHistory,
     onGoToQuiz,
+    onGoToProfile,
+    onGoToSettings,
     onLogout,
     onSearchCase,
 }: AppShellProps) {
@@ -57,7 +78,24 @@ function AppShell({
         "error",
     );
 
-    const navItems = [
+    const [workspaceCollapsed, setWorkspaceCollapsed] = useState(() =>
+        getStoredCollapsedState("kv-sidebar-workspace-collapsed", false),
+    );
+    const [accountCollapsed, setAccountCollapsed] = useState(() =>
+        getStoredCollapsedState("kv-sidebar-account-collapsed", false),
+    );
+
+    const goToSettings =
+        onGoToSettings ||
+        (() => {
+            window.dispatchEvent(
+                new CustomEvent("kv:navigate", {
+                    detail: { view: "settings" },
+                }),
+            );
+        });
+
+    const workspaceNavItems = [
         {
             key: "dashboard" as const,
             label: "Dashboard",
@@ -81,6 +119,21 @@ function AppShell({
             label: "Quiz",
             icon: "?",
             onClick: onGoToQuiz,
+        },
+    ];
+
+    const accountNavItems = [
+        {
+            key: "profile" as const,
+            label: "Profile",
+            icon: "U",
+            onClick: onGoToProfile,
+        },
+        {
+            key: "settings" as const,
+            label: "Settings",
+            icon: "⚙",
+            onClick: goToSettings,
         },
     ];
 
@@ -124,6 +177,47 @@ function AppShell({
         }
     };
 
+    const toggleWorkspaceGroup = () => {
+        setWorkspaceCollapsed((current) => {
+            const next = !current;
+            localStorage.setItem("kv-sidebar-workspace-collapsed", String(next));
+            return next;
+        });
+    };
+
+    const toggleAccountGroup = () => {
+        setAccountCollapsed((current) => {
+            const next = !current;
+            localStorage.setItem("kv-sidebar-account-collapsed", String(next));
+            return next;
+        });
+    };
+
+    const renderNavItem = (item: {
+        key: AppPage;
+        label: string;
+        icon: string;
+        onClick?: () => void;
+    }) => {
+        const isActive = currentPage === item.key;
+        const isDisabled = !item.onClick && !isActive;
+
+        return (
+            <button
+                key={item.key}
+                type="button"
+                className={`kv-sidebar-nav-item ${isActive ? "kv-sidebar-nav-item--active" : ""
+                    }`}
+                onClick={item.onClick}
+                disabled={isDisabled}
+                title={isDisabled ? "Coming soon" : item.label}
+            >
+                <span className="kv-sidebar-nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
+            </button>
+        );
+    };
+
     return (
         <main className="kv-app-shell">
             <aside className="kv-sidebar">
@@ -150,24 +244,49 @@ function AppShell({
                     </form>
 
                     <nav className="kv-sidebar-nav" aria-label="Main navigation">
-                        {navItems.map((item) => {
-                            const isActive = currentPage === item.key;
-                            const isDisabled = !item.onClick && !isActive;
+                        <div className="kv-sidebar-nav-group">
+                            <button
+                                type="button"
+                                className="kv-sidebar-group-toggle"
+                                onClick={toggleWorkspaceGroup}
+                                aria-expanded={!workspaceCollapsed}
+                            >
+                                <span>Workspace</span>
+                                <span className="kv-sidebar-group-arrow">
+                                    {workspaceCollapsed ? "›" : "⌄"}
+                                </span>
+                            </button>
 
-                            return (
-                                <button
-                                    key={item.key}
-                                    type="button"
-                                    className={`kv-sidebar-nav-item ${isActive ? "kv-sidebar-nav-item--active" : ""
-                                        }`}
-                                    onClick={item.onClick}
-                                    disabled={isDisabled}
-                                >
-                                    <span className="kv-sidebar-nav-icon">{item.icon}</span>
-                                    <span>{item.label}</span>
-                                </button>
-                            );
-                        })}
+                            <div
+                                className={`kv-sidebar-group-items ${workspaceCollapsed
+                                        ? "kv-sidebar-group-items--collapsed"
+                                        : ""
+                                    }`}
+                            >
+                                {workspaceNavItems.map(renderNavItem)}
+                            </div>
+                        </div>
+
+                        <div className="kv-sidebar-nav-group">
+                            <button
+                                type="button"
+                                className="kv-sidebar-group-toggle"
+                                onClick={toggleAccountGroup}
+                                aria-expanded={!accountCollapsed}
+                            >
+                                <span>Account</span>
+                                <span className="kv-sidebar-group-arrow">
+                                    {accountCollapsed ? "›" : "⌄"}
+                                </span>
+                            </button>
+
+                            <div
+                                className={`kv-sidebar-group-items ${accountCollapsed ? "kv-sidebar-group-items--collapsed" : ""
+                                    }`}
+                            >
+                                {accountNavItems.map(renderNavItem)}
+                            </div>
+                        </div>
                     </nav>
                 </div>
 
