@@ -189,7 +189,9 @@ const isSafeKey = (key) => {
   );
 };
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+// const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
+const uploadedImageDataByKey = new Map();
 
 function escapeCsvValue(value) {
   if (value === null || value === undefined) return "";
@@ -331,6 +333,13 @@ app.put(
 
       await fs.writeFile(filePath, buf);
 
+      if (isImage && !isDicom) {
+        uploadedImageDataByKey.set(key, {
+          imageData: `data:image/png;base64,${buf.toString("base64")}`,
+          contentType: "image/png",
+        });
+      }
+
       return res.status(200).json({ ok: true });
     } catch (err) {
       console.error(err);
@@ -353,10 +362,14 @@ app.post("/api/v1/images", requireAuth, async (req, res) => {
 
     const now = new Date().toISOString();
 
+    const filename = path.basename(decodeURIComponent(fileUrl));
+    const uploadedImageData = uploadedImageDataByKey.get(filename);
+
     const imageDoc = {
       fileUrl,
       originalName: originalName || null,
       contentType: contentType || null,
+      imageData: uploadedImageData?.imageData || null,
       uploadedBy: {
         userId: req.user.userId,
         email: req.user.email,
@@ -367,11 +380,14 @@ app.post("/api/v1/images", requireAuth, async (req, res) => {
 
     const result = await images.insertOne(imageDoc);
 
+    uploadedImageDataByKey.delete(filename);
+
     return res.status(201).json({
       id: result.insertedId.toString(),
       fileUrl: imageDoc.fileUrl,
       originalName: imageDoc.originalName,
       contentType: imageDoc.contentType,
+      imageData: imageDoc.imageData,
       uploadedBy: imageDoc.uploadedBy,
       createdAt: imageDoc.createdAt,
     });
@@ -497,7 +513,6 @@ app.post("/api/v1/predict", requireAuth, async (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-
 // ─── Chat history endpoints ───────────────────────────────────────────────────
 // Save chat history for a specific prediction
 app.post("/api/v1/chat-history", requireAuth, async (req, res) => {
@@ -505,7 +520,9 @@ app.post("/api/v1/chat-history", requireAuth, async (req, res) => {
     const { predictionId, messages } = req.body || {};
 
     if (!predictionId || !messages) {
-      return res.status(400).json({ message: "predictionId and messages are required." });
+      return res
+        .status(400)
+        .json({ message: "predictionId and messages are required." });
     }
 
     const db = getDb();
@@ -522,7 +539,7 @@ app.post("/api/v1/chat-history", requireAuth, async (req, res) => {
         },
         $setOnInsert: { createdAt: new Date().toISOString() },
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     return res.status(200).json({ ok: true });
@@ -562,7 +579,9 @@ app.post("/api/v1/chat", requireAuth, async (req, res) => {
     const { imageBase64, result, similarCases, messages } = req.body || {};
 
     if (!imageBase64 || !result || !messages) {
-      return res.status(400).json({ message: "imageBase64, result, and messages are required." });
+      return res
+        .status(400)
+        .json({ message: "imageBase64, result, and messages are required." });
     }
 
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -571,14 +590,16 @@ app.post("/api/v1/chat", requireAuth, async (req, res) => {
     }
 
     const similarSummary = (similarCases || [])
-      .map((c, i) => `
+      .map(
+        (c, i) => `
 Case ${i + 1} (KL Grade ${c.klGrade}, ${(c.similarity * 100).toFixed(1)}% match):
 - Osteophytes: ${c.osteophyteSeverity}
 - Joint space narrowing: ${c.jointSpaceNarrowing}
 - Subchondral sclerosis: ${c.subchondralSclerosis}
 - Bone texture: ${c.boneTexture}
 - Affected compartment: ${c.affectedCompartment}
-- Findings: ${c.overallFindings}`)
+- Findings: ${c.overallFindings}`,
+      )
       .join("\n");
 
     const systemPrompt = `You are a radiology assistant specializing in knee osteoarthritis analysis using the Kellgren-Lawrence (KL) grading system.
@@ -619,7 +640,10 @@ You can see the uploaded knee X-ray image. Answer questions about the image, the
           return {
             role: "user",
             content: [
-              { type: "image_url", image_url: { url: `data:image/png;base64,${base64Data}` } },
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${base64Data}` },
+              },
               { type: "text", text: msg.content },
             ],
           };
@@ -631,19 +655,22 @@ You can see the uploaded knee X-ray image. Answer questions about the image, the
       }),
     ];
 
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          messages: chatMessages,
+          max_tokens: 1024,
+          temperature: 0.4,
+        }),
       },
-      body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: chatMessages,
-        max_tokens: 1024,
-        temperature: 0.4,
-      }),
-    });
+    );
 
     if (!groqResponse.ok) {
       const err = await groqResponse.text();
@@ -651,7 +678,8 @@ You can see the uploaded knee X-ray image. Answer questions about the image, the
     }
 
     const groqData = await groqResponse.json();
-    const reply = groqData.choices?.[0]?.message?.content ?? "No response generated.";
+    const reply =
+      groqData.choices?.[0]?.message?.content ?? "No response generated.";
 
     return res.status(200).json({ reply });
   } catch (err) {
@@ -690,6 +718,7 @@ app.get("/api/v1/images", requireAuth, async (req, res) => {
       contentType: doc.contentType,
       uploadedBy: doc.uploadedBy,
       createdAt: doc.createdAt,
+      imageData: doc.imageData || null,
     }));
 
     return res.status(200).json(result);
@@ -817,7 +846,9 @@ app.get("/api/v1/predictions/export/csv", requireAuth, async (req, res) => {
     return res.status(200).send(csv);
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Failed to export predictions CSV." });
+    return res
+      .status(500)
+      .json({ message: "Failed to export predictions CSV." });
   }
 });
 
@@ -825,7 +856,11 @@ app.post("/api/v1/similar", requireAuth, async (req, res) => {
   try {
     const { fileUrl, grade } = req.body || {};
 
-    if (!fileUrl || typeof fileUrl !== "string" || !fileUrl.startsWith("/uploads/")) {
+    if (
+      !fileUrl ||
+      typeof fileUrl !== "string" ||
+      !fileUrl.startsWith("/uploads/")
+    ) {
       return res.status(400).json({ message: "Invalid fileUrl." });
     }
 
@@ -844,14 +879,22 @@ app.post("/api/v1/similar", requireAuth, async (req, res) => {
     const blob = new Blob([fileBuffer], { type: "image/png" });
     form.append("file", blob, filename);
 
-    const gradeMap = { "Grade 0": 0, "Grade 1": 1, "Grade 2": 2, "Grade 3": 3, "Grade 4": 4 };
-    const gradeIndex = grade !== undefined && gradeMap[grade] !== undefined
-      ? gradeMap[grade]
-      : null;
+    const gradeMap = {
+      "Grade 0": 0,
+      "Grade 1": 1,
+      "Grade 2": 2,
+      "Grade 3": 3,
+      "Grade 4": 4,
+    };
+    const gradeIndex =
+      grade !== undefined && gradeMap[grade] !== undefined
+        ? gradeMap[grade]
+        : null;
 
-    const mlUrl = gradeIndex !== null
-      ? `${ML_SERVICE_URL}/similar?kl_grade=${gradeIndex}`
-      : `${ML_SERVICE_URL}/similar`;
+    const mlUrl =
+      gradeIndex !== null
+        ? `${ML_SERVICE_URL}/similar?kl_grade=${gradeIndex}`
+        : `${ML_SERVICE_URL}/similar`;
 
     const response = await fetch(mlUrl, {
       method: "POST",
@@ -878,7 +921,9 @@ app.post("/api/v1/similar", requireAuth, async (req, res) => {
 app.get("/api/v1/quiz/question", requireAuth, async (req, res) => {
   try {
     const { difficulty = "medium" } = req.query;
-    const response = await fetch(`${ML_SERVICE_URL}/quiz/question?difficulty=${difficulty}`);
+    const response = await fetch(
+      `${ML_SERVICE_URL}/quiz/question?difficulty=${difficulty}`,
+    );
     if (!response.ok) throw new Error(`ML service error (${response.status})`);
     const data = await response.json();
     return res.status(200).json(data);
@@ -893,7 +938,9 @@ app.post("/api/v1/quiz/submit", requireAuth, async (req, res) => {
   try {
     const { caseId, userAnswer, difficulty, timeLeft } = req.body || {};
     if (!caseId || userAnswer === undefined) {
-      return res.status(400).json({ message: "caseId and userAnswer are required." });
+      return res
+        .status(400)
+        .json({ message: "caseId and userAnswer are required." });
     }
 
     const response = await fetch(`${ML_SERVICE_URL}/quiz/answer/${caseId}`);

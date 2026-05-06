@@ -22,6 +22,7 @@ type DashboardImage = {
   originalName?: string;
   contentType?: string;
   createdAt?: string;
+  imageData?: string;
 };
 
 type SavedPrediction = {
@@ -204,7 +205,7 @@ function DashboardPage({
                     >
                       <div className="kv-recent-thumb">
                         <img
-                          src={`${BACKEND}${img.fileUrl}`}
+                          src={img.imageData || `${BACKEND}${img.fileUrl}`}
                           alt={img.originalName || "Uploaded image"}
                         />
                       </div>

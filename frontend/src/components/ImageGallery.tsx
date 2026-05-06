@@ -6,6 +6,7 @@ export type GalleryImage = {
   originalName?: string;
   createdAt?: string;
   contentType?: string;
+  imageData?: string | null;
 };
 
 type Props = {
