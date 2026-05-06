@@ -7,6 +7,7 @@ import { preprocessImage } from "./imageProcessor.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { connectToMongo, getDb } from "./db.js";
+import { ObjectId } from "mongodb";
 
 dotenv.config();
 
@@ -695,6 +696,77 @@ app.get("/api/v1/images", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Failed to fetch images." });
+  }
+});
+
+app.delete("/api/v1/images/:imageId", requireAuth, async (req, res) => {
+  try {
+    const { imageId } = req.params;
+
+    if (!ObjectId.isValid(imageId)) {
+      return res.status(400).json({ message: "Invalid image id." });
+    }
+
+    const db = getDb();
+    const images = db.collection("images");
+    const predictions = db.collection("predictions");
+    const chatHistories = db.collection("chatHistories");
+
+    const imageDoc = await images.findOne({
+      _id: new ObjectId(imageId),
+      "uploadedBy.userId": req.user.userId,
+    });
+
+    if (!imageDoc) {
+      return res.status(404).json({ message: "Image not found." });
+    }
+
+    const predictionDocs = await predictions
+      .find({
+        imageId,
+        userId: req.user.userId,
+      })
+      .toArray();
+
+    const predictionIds = predictionDocs.map((doc) => doc._id.toString());
+
+    if (predictionIds.length > 0) {
+      await chatHistories.deleteMany({
+        userId: req.user.userId,
+        predictionId: { $in: predictionIds },
+      });
+    }
+
+    const predictionDeleteResult = await predictions.deleteMany({
+      imageId,
+      userId: req.user.userId,
+    });
+
+    const imageDeleteResult = await images.deleteOne({
+      _id: new ObjectId(imageId),
+      "uploadedBy.userId": req.user.userId,
+    });
+
+    if (imageDoc.fileUrl && imageDoc.fileUrl.startsWith("/uploads/")) {
+      const filename = path.basename(decodeURIComponent(imageDoc.fileUrl));
+      const localFilePath = path.join("uploads", filename);
+
+      try {
+        await fs.unlink(localFilePath);
+      } catch {
+        // Ignore missing files because Render/local uploads may be ephemeral.
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      deletedImageCount: imageDeleteResult.deletedCount,
+      deletedPredictionCount: predictionDeleteResult.deletedCount,
+      deletedChatHistoryCount: predictionIds.length,
+    });
+  } catch (err) {
+    console.error("Delete image failed:", err);
+    return res.status(500).json({ message: "Failed to delete image." });
   }
 });
 
