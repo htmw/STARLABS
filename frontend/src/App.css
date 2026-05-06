@@ -3059,87 +3059,6 @@ body {
   gap: 8px;
 }
 
-/* ─── Sidebar Groups ───────────────────────────────────────────────────────── */
-.kv-sidebar-nav-group {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.kv-sidebar-nav-group + .kv-sidebar-nav-group {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(192, 213, 228, 0.72);
-}
-
-.kv-sidebar-group-toggle {
-  width: 100%;
-  min-height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  border: none;
-  background: transparent;
-  padding: 0 6px;
-  color: #8ba8c4;
-  font-family: var(--ff-head);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    background 0.15s;
-}
-
-.kv-sidebar-group-toggle:hover {
-  color: #1c538e;
-}
-
-.kv-sidebar-group-arrow {
-  width: 22px;
-  height: 22px;
-  border-radius: 8px;
-  background: rgba(192, 213, 228, 0.38);
-  color: #5983ab;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  line-height: 1;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    transform 0.15s;
-}
-
-.kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
-  background: #eef7fc;
-  color: #1c538e;
-}
-
-.kv-sidebar-group-items {
-  display: grid;
-  gap: 8px;
-  overflow: hidden;
-  max-height: 260px;
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    max-height 0.22s ease,
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-
-.kv-sidebar-group-items--collapsed {
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-4px);
-  pointer-events: none;
-}
-
 .kv-sidebar-nav-item {
   width: 100%;
   min-height: 42px;
@@ -3180,13 +3099,8 @@ body {
 }
 
 .kv-sidebar-nav-item:disabled {
-  opacity: 0.48;
+  opacity: 0.55;
   cursor: not-allowed;
-  background: transparent;
-}
-
-.kv-sidebar-nav-item:disabled .kv-sidebar-nav-icon {
-  color: #8ba8c4;
 }
 
 .kv-sidebar-nav-icon {
@@ -3683,13 +3597,7 @@ body {
 
   .kv-sidebar-nav {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .kv-sidebar-nav-group + .kv-sidebar-nav-group {
-    margin-top: 0;
-    padding-top: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .kv-sidebar-bottom {
@@ -4002,240 +3910,6 @@ body {
 .kv-history-badge--soft {
   background: #e7f0f5;
   color: #5983ab;
-}
-
-.kv-history-delete-button {
-  width: 100%;
-  margin-top: 14px;
-  padding: 9px 12px;
-  border: 1px solid #fecaca;
-  border-radius: 14px;
-  background: #fff5f5;
-  color: #c0392b;
-  font-family: var(--ff-head);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    border-color 0.15s,
-    background 0.15s,
-    color 0.15s,
-    box-shadow 0.15s;
-}
-
-.kv-history-delete-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: #fca5a5;
-  background: #fee2e2;
-  color: #991b1b;
-  box-shadow: 0 10px 20px rgba(192, 57, 43, 0.12);
-}
-
-.kv-history-delete-button:focus {
-  outline: 3px solid rgba(192, 57, 43, 0.18);
-  outline-offset: 2px;
-}
-
-.kv-history-delete-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* ─── Custom Confirm Modal — History Delete ─────────────────────────────────── */
-.kv-confirm-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background:
-    radial-gradient(
-      circle at 50% 30%,
-      rgba(145, 221, 249, 0.22),
-      transparent 34%
-    ),
-    rgba(26, 35, 50, 0.38);
-  backdrop-filter: blur(8px);
-  animation: kvConfirmBackdropIn 0.18s ease both;
-}
-
-.kv-confirm-modal {
-  width: min(100%, 460px);
-  padding: 24px;
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(192, 213, 228, 0.95);
-  box-shadow:
-    0 28px 70px rgba(28, 83, 142, 0.24),
-    0 8px 24px rgba(15, 23, 42, 0.12);
-  animation: kvConfirmModalIn 0.22s ease both;
-}
-
-.kv-confirm-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(254, 242, 242, 0.95),
-    rgba(255, 245, 245, 1)
-  );
-  border: 1px solid #fecaca;
-  color: #c0392b;
-  font-family: var(--ff-head);
-  font-size: 22px;
-  font-weight: 800;
-  box-shadow: 0 12px 26px rgba(192, 57, 43, 0.12);
-}
-
-.kv-confirm-content h3 {
-  margin: 0;
-  color: #1a2332;
-  font-family: var(--ff-head);
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.kv-confirm-content p {
-  margin-top: 10px;
-  color: #5983ab;
-  font-size: 14px;
-  line-height: 1.65;
-}
-
-.kv-confirm-file {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: #f7fbfd;
-  border: 1px solid #d7e7f1;
-  color: #1c538e;
-  font-size: 13px;
-  font-weight: 800;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kv-confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 22px;
-}
-
-.kv-confirm-cancel,
-.kv-confirm-delete {
-  min-width: 104px;
-  border-radius: 15px;
-  padding: 11px 16px;
-  font-family: var(--ff-head);
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s,
-    border-color 0.15s,
-    background 0.15s,
-    color 0.15s,
-    opacity 0.15s;
-}
-
-.kv-confirm-cancel {
-  border: 1px solid #c0d5e4;
-  background: #f7fbfd;
-  color: #5983ab;
-}
-
-.kv-confirm-cancel:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: #8ba8c4;
-  color: #1c538e;
-  background: #eef7fc;
-  box-shadow: 0 10px 22px rgba(28, 83, 142, 0.08);
-}
-
-.kv-confirm-delete {
-  border: none;
-  background: linear-gradient(90deg, #c0392b 0%, #ef4444 100%);
-  color: #ffffff;
-  box-shadow: 0 14px 28px rgba(192, 57, 43, 0.2);
-}
-
-.kv-confirm-delete:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: linear-gradient(90deg, #a93226 0%, #dc2626 100%);
-  box-shadow: 0 18px 34px rgba(192, 57, 43, 0.26);
-}
-
-.kv-confirm-cancel:disabled,
-.kv-confirm-delete:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-@keyframes kvConfirmBackdropIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes kvConfirmModalIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (max-width: 520px) {
-  .kv-confirm-backdrop {
-    align-items: flex-end;
-    padding: 16px;
-  }
-
-  .kv-confirm-modal {
-    width: 100%;
-    padding: 22px;
-    border-radius: 24px;
-  }
-
-  .kv-confirm-actions {
-    flex-direction: column-reverse;
-  }
-
-  .kv-confirm-cancel,
-  .kv-confirm-delete {
-    width: 100%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kv-confirm-backdrop,
-  .kv-confirm-modal {
-    animation: none;
-  }
 }
 
 @media (max-width: 1180px) {
@@ -4984,7 +4658,6 @@ body {
     }
   }
 }
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    SIDEBAR GROUPS — Workspace / Account
 ═══════════════════════════════════════════════════════════════════════════════ */
@@ -5076,6 +4749,220 @@ body {
 
 .kv-sidebar-nav-item:disabled .kv-sidebar-nav-icon {
   color: #8ba8c4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HISTORY DELETE UI
+═══════════════════════════════════════════════════════════════════════════════ */
+.kv-history-delete-button {
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fff5f5;
+  color: #c0392b;
+  font-family: var(--ff-head);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.kv-history-delete-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #991b1b;
+  box-shadow: 0 10px 20px rgba(192, 57, 43, 0.12);
+}
+
+.kv-history-delete-button:focus {
+  outline: 3px solid rgba(192, 57, 43, 0.18);
+  outline-offset: 2px;
+}
+
+.kv-history-delete-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.kv-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(
+      circle at 50% 30%,
+      rgba(145, 221, 249, 0.22),
+      transparent 34%
+    ),
+    rgba(26, 35, 50, 0.38);
+  backdrop-filter: blur(8px);
+  animation: kvConfirmBackdropIn 0.18s ease both;
+}
+
+.kv-confirm-modal {
+  width: min(100%, 460px);
+  padding: 24px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(192, 213, 228, 0.95);
+  box-shadow:
+    0 28px 70px rgba(28, 83, 142, 0.24),
+    0 8px 24px rgba(15, 23, 42, 0.12);
+  animation: kvConfirmModalIn 0.22s ease both;
+}
+
+.kv-confirm-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(254, 242, 242, 0.95),
+    rgba(255, 245, 245, 1)
+  );
+  border: 1px solid #fecaca;
+  color: #c0392b;
+  font-family: var(--ff-head);
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: 0 12px 26px rgba(192, 57, 43, 0.12);
+}
+
+.kv-confirm-content h3 {
+  margin: 0;
+  color: #1a2332;
+  font-family: var(--ff-head);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.kv-confirm-content p {
+  margin-top: 10px;
+  color: #5983ab;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.kv-confirm-file {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f7fbfd;
+  border: 1px solid #d7e7f1;
+  color: #1c538e;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.kv-confirm-cancel,
+.kv-confirm-delete {
+  min-width: 104px;
+  border-radius: 15px;
+  padding: 11px 16px;
+  font-family: var(--ff-head);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s,
+    opacity 0.15s;
+}
+
+.kv-confirm-cancel {
+  border: 1px solid #c0d5e4;
+  background: #f7fbfd;
+  color: #5983ab;
+}
+
+.kv-confirm-cancel:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #8ba8c4;
+  color: #1c538e;
+  background: #eef7fc;
+  box-shadow: 0 10px 22px rgba(28, 83, 142, 0.08);
+}
+
+.kv-confirm-delete {
+  border: none;
+  background: linear-gradient(90deg, #c0392b 0%, #ef4444 100%);
+  color: #ffffff;
+  box-shadow: 0 14px 28px rgba(192, 57, 43, 0.2);
+}
+
+.kv-confirm-delete:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(90deg, #a93226 0%, #dc2626 100%);
+  box-shadow: 0 18px 34px rgba(192, 57, 43, 0.26);
+}
+
+.kv-confirm-cancel:disabled,
+.kv-confirm-delete:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@keyframes kvConfirmBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes kvConfirmModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-confirm-backdrop,
+  .kv-confirm-modal {
+    animation: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -5658,85 +5545,10 @@ html.kv-compact-mode .kv-results-detail-grid {
   gap: 14px;
 }
 
-@media (max-width: 1024px) {
-  .kv-settings-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .kv-theme-choice-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .kv-sidebar-nav {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .kv-sidebar-nav-group + .kv-sidebar-nav-group {
-    margin-top: 0;
-    padding-top: 12px;
-  }
-
-  .kv-settings-reset-panel {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .kv-settings-reset-button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 520px) {
-  .kv-settings-grid {
-    gap: 14px;
-  }
-
-  .kv-system-info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .kv-settings-row,
-  .kv-language-card {
-    align-items: flex-start;
-  }
-
-  .kv-language-card {
-    flex-direction: column;
-  }
-
-  .kv-settings-toast {
-    top: 18px;
-    left: 16px;
-    right: 16px;
-    transform: none;
-    min-width: 0;
-    max-width: none;
-  }
-
-  @keyframes kvSettingsToastIn {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
-   GLOBAL RESPONSIVE SCALING FIX
-   Keeps the dashboard-style UI adaptive across different window sizes.
-   Also keeps the sidebar background visually full-height on long pages.
+   RESPONSIVE LAYOUT + FIXED SIDEBAR
+   Keeps the left navigation fixed while the main content scrolls.
 ═══════════════════════════════════════════════════════════════════════════════ */
-
-/* Prevent horizontal overflow from cards, grids, images, and long text */
 html,
 body,
 #root {
@@ -5769,53 +5581,49 @@ svg {
   max-width: 1180px;
 }
 
-/* Desktop/tablet shell background.
-   The linear gradient paints the sidebar column through the full page height,
-   so it will not visually break when the right content becomes taller. */
-.kv-app-shell {
-  --kv-sidebar-current-width: 260px;
-  min-height: 100dvh;
-  align-items: stretch;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.82) 0 calc(var(--kv-sidebar-current-width) - 1px),
-    rgba(192, 213, 228, 0.9) calc(var(--kv-sidebar-current-width) - 1px)
-      var(--kv-sidebar-current-width),
-    #e7f0f5 var(--kv-sidebar-current-width) 100%
-  );
-}
-
-/* Keep the real sidebar sticky, but let the app-shell background fill the long page. */
 @media (min-width: 761px) {
   .kv-app-shell {
-    grid-template-columns: var(--kv-sidebar-current-width) minmax(0, 1fr);
+    display: block;
+    min-height: 100dvh;
+    background: #e7f0f5;
   }
 
   .kv-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    width: 260px;
     height: 100dvh;
     min-height: 100dvh;
-    border-right: none;
+    z-index: 20;
+    border-right: 1px solid rgba(192, 213, 228, 0.9);
     border-bottom: none;
+    overflow-y: auto;
   }
 
-  .kv-sidebar-search {
-    display: flex;
+  .kv-workspace {
+    margin-left: 260px;
+    min-height: 100dvh;
+    padding: 24px 28px 36px;
+  }
+
+  .kv-sidebar-top {
+    flex: 1;
   }
 
   .kv-sidebar-bottom {
+    flex-shrink: 0;
     margin-top: auto;
   }
 }
 
-/* Medium desktop */
 @media (max-width: 1280px) and (min-width: 1101px) {
-  .kv-app-shell {
-    --kv-sidebar-current-width: 230px;
+  .kv-sidebar {
+    width: 230px;
   }
 
   .kv-workspace {
+    margin-left: 230px;
     padding: 22px 22px 32px;
   }
 
@@ -5828,15 +5636,15 @@ svg {
   }
 }
 
-/* Small laptop / tablet landscape:
-   Content can become one column, but sidebar remains a left column. */
 @media (max-width: 1100px) and (min-width: 761px) {
-  .kv-app-shell {
-    --kv-sidebar-current-width: 210px;
+  .kv-sidebar {
+    width: 210px;
+    padding: 18px 14px;
   }
 
-  .kv-sidebar {
-    padding: 18px 14px;
+  .kv-workspace {
+    margin-left: 210px;
+    padding: 20px 16px 28px;
   }
 
   .kv-sidebar-brand {
@@ -5871,13 +5679,7 @@ svg {
   }
 }
 
-/* Narrow desktop/tablet density adjustment.
-   Do NOT switch the whole app shell to one column here. */
 @media (max-width: 900px) and (min-width: 761px) {
-  .kv-workspace {
-    padding: 20px 16px 28px;
-  }
-
   .kv-topbar {
     flex-direction: column;
     align-items: flex-start;
@@ -5911,22 +5713,24 @@ svg {
   }
 }
 
-/* Real mobile layout.
-   Only under 760px do we turn the sidebar into a top section. */
 @media (max-width: 760px) {
   .kv-app-shell {
-    --kv-sidebar-current-width: 0px;
+    display: grid;
     grid-template-columns: 1fr;
     background: #e7f0f5;
   }
 
   .kv-sidebar {
     position: relative;
+    left: auto;
+    top: auto;
+    width: auto;
     height: auto;
     min-height: auto;
-    padding: 16px;
+    overflow-y: visible;
     border-right: none;
     border-bottom: 1px solid rgba(192, 213, 228, 0.9);
+    padding: 16px;
   }
 
   .kv-sidebar-search {
@@ -5949,6 +5753,7 @@ svg {
   }
 
   .kv-workspace {
+    margin-left: 0;
     padding: 20px 16px 28px;
   }
 
@@ -5976,7 +5781,6 @@ svg {
   }
 }
 
-/* Mobile scaling */
 @media (max-width: 640px) {
   .kv-workspace {
     padding: 18px 12px 24px;
@@ -6022,9 +5826,62 @@ svg {
   .kv-confirm-modal {
     width: 100%;
   }
+
+  .kv-confirm-backdrop {
+    align-items: flex-end;
+    padding: 16px;
+  }
+
+  .kv-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .kv-confirm-cancel,
+  .kv-confirm-delete {
+    width: 100%;
+  }
 }
 
-/* Very small screens */
+@media (max-width: 520px) {
+  .kv-settings-grid {
+    gap: 14px;
+  }
+
+  .kv-system-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kv-settings-row,
+  .kv-language-card {
+    align-items: flex-start;
+  }
+
+  .kv-language-card {
+    flex-direction: column;
+  }
+
+  .kv-settings-toast {
+    top: 18px;
+    left: 16px;
+    right: 16px;
+    transform: none;
+    min-width: 0;
+    max-width: none;
+  }
+
+  @keyframes kvSettingsToastIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
 @media (max-width: 420px) {
   .kv-workspace {
     padding: 14px 10px 22px;
@@ -6057,21 +5914,15 @@ svg {
   }
 }
 
-/* Dark mode version of the long sidebar background fill */
-html[data-theme="dark"] .kv-app-shell {
-  background:
-    radial-gradient(
-      circle at 85% 10%,
-      rgba(72, 191, 236, 0.12),
-      transparent 28%
-    ),
-    linear-gradient(
-      90deg,
-      rgba(13, 25, 43, 0.96) 0 calc(var(--kv-sidebar-current-width) - 1px),
-      rgba(49, 80, 111, 0.72) calc(var(--kv-sidebar-current-width) - 1px)
-        var(--kv-sidebar-current-width),
-      #08111f var(--kv-sidebar-current-width) 100%
-    );
+@media (min-width: 761px) {
+  html[data-theme="dark"] .kv-app-shell {
+    background: #08111f;
+  }
+
+  html[data-theme="dark"] .kv-sidebar {
+    border-right-color: rgba(49, 80, 111, 0.72);
+    border-bottom: none;
+  }
 }
 
 @media (max-width: 760px) {
@@ -6084,4 +5935,335 @@ html[data-theme="dark"] .kv-app-shell {
       ),
       #08111f;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FINAL DARK MODE POLISH
+   Scope dark mode to the authenticated workspace only and fix contrast issues.
+═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Keep Landing / Login / Register in the original light theme even when
+   the saved workspace preference is Dark Mode. */
+html[data-theme="dark"] .landing-page,
+html[data-theme="dark"] .auth-page,
+html[data-theme="dark"] .auth-page-split {
+  color-scheme: light;
+
+  --brand: #1a56db;
+  --brand-dark: #1648c0;
+  --brand-light: #eff4ff;
+  --brand-ring: rgba(26, 86, 219, 0.18);
+
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --border: #e5eaf0;
+  --border-dark: #cdd5df;
+
+  --text-primary: #1a2332;
+  --text-secondary: #5a6a7e;
+  --text-muted: #8fa0b4;
+
+  --success: #0d7a4e;
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+
+  --error: #c0392b;
+  --error-bg: #fef2f2;
+  --error-border: #fecaca;
+
+  color: #1a2332;
+}
+
+html[data-theme="dark"] .landing-page {
+  background: #f0f4f8;
+}
+
+html[data-theme="dark"] .landing-nav,
+html[data-theme="dark"] .landing-features,
+html[data-theme="dark"] .auth-card {
+  background: #ffffff;
+  color: #1a2332;
+  border-color: #e5eaf0;
+}
+
+html[data-theme="dark"] .landing-nav-brand,
+html[data-theme="dark"] .landing-title,
+html[data-theme="dark"] .landing-feature-title,
+html[data-theme="dark"] .auth-card h1,
+html[data-theme="dark"] .auth-card-split h1,
+html[data-theme="dark"] .auth-logo-row {
+  color: #1a2332;
+}
+
+html[data-theme="dark"] .landing-desc,
+html[data-theme="dark"] .landing-feature-desc,
+html[data-theme="dark"] .auth-subtitle,
+html[data-theme="dark"] .auth-switch-text,
+html[data-theme="dark"] .auth-card-split .auth-subtitle,
+html[data-theme="dark"] .auth-card-split .auth-switch-text {
+  color: #5a6a7e;
+}
+
+html[data-theme="dark"] .auth-page {
+  background: linear-gradient(145deg, #eef2ff 0%, #f0f4f8 50%, #e8f4ff 100%);
+}
+
+html[data-theme="dark"] .auth-page-split {
+  background: #e7f0f5;
+}
+
+html[data-theme="dark"] .auth-form-panel {
+  background: #edf5f9;
+  color: #1a2332;
+}
+
+html[data-theme="dark"] .auth-card-split {
+  background: rgba(255, 255, 255, 0.58);
+  border-color: rgba(192, 213, 228, 0.95);
+  box-shadow: 0 24px 60px rgba(28, 83, 142, 0.1);
+}
+
+html[data-theme="dark"] .auth-card-split .auth-form label {
+  color: #5983ab;
+}
+
+html[data-theme="dark"] .auth-card-split .auth-form input,
+html[data-theme="dark"] .auth-form input {
+  background: #ffffff;
+  color: #1a2332;
+  border-color: #b8ccdc;
+}
+
+html[data-theme="dark"] .auth-card-split .auth-form input::placeholder,
+html[data-theme="dark"] .auth-form input::placeholder {
+  color: #8ba8c4;
+}
+
+/* Result chat / AI answer readability in dark mode */
+html[data-theme="dark"] .kv-results-chat-section .results-chat-messages {
+  background: rgba(8, 17, 31, 0.72);
+  border-color: rgba(49, 80, 111, 0.78);
+}
+
+html[data-theme="dark"] .results-chat-markdown {
+  background: rgba(16, 29, 49, 0.96);
+  color: #e8f2ff;
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .results-chat-markdown p,
+html[data-theme="dark"] .results-chat-markdown li,
+html[data-theme="dark"] .results-chat-markdown strong,
+html[data-theme="dark"] .results-chat-markdown h1,
+html[data-theme="dark"] .results-chat-markdown h2,
+html[data-theme="dark"] .results-chat-markdown h3 {
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .results-chat-role,
+html[data-theme="dark"] .results-chat-empty {
+  color: #a9bdd4;
+}
+
+html[data-theme="dark"] .results-chat-input {
+  background: #0b1628;
+  color: #e8f2ff;
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .results-chat-input::placeholder {
+  color: #6f8aa8;
+}
+
+html[data-theme="dark"] .results-chat-input:focus {
+  background: #101d31;
+  border-color: #48bfec;
+  box-shadow: 0 0 0 3px rgba(72, 191, 236, 0.22);
+}
+
+/* Quiz difficulty cards / buttons readability in dark mode */
+html[data-theme="dark"] .quiz-difficulty-btn,
+html[data-theme="dark"] .kv-quiz-difficulty-card {
+  background: rgba(16, 29, 49, 0.88);
+  border-color: rgba(49, 80, 111, 0.78);
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-difficulty-label,
+html[data-theme="dark"] .kv-quiz-difficulty-card strong {
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-difficulty-desc,
+html[data-theme="dark"] .kv-quiz-difficulty-card span {
+  color: #a9bdd4;
+}
+
+html[data-theme="dark"] .quiz-difficulty-btn:hover,
+html[data-theme="dark"] .kv-quiz-difficulty-card:hover {
+  background: rgba(72, 191, 236, 0.1);
+  border-color: rgba(145, 221, 249, 0.5);
+}
+
+html[data-theme="dark"] .quiz-difficulty-btn--active,
+html[data-theme="dark"] .kv-quiz-difficulty-card--active {
+  background: linear-gradient(
+    135deg,
+    rgba(72, 191, 236, 0.18),
+    rgba(145, 221, 249, 0.1)
+  );
+  border-color: rgba(145, 221, 249, 0.68);
+  box-shadow: inset 0 0 0 2px rgba(145, 221, 249, 0.14);
+}
+
+/* Sidebar group arrow: keep one arrow style and only rotate direction. */
+.kv-sidebar-group-arrow {
+  font-size: 0;
+}
+
+.kv-sidebar-group-arrow::before {
+  content: "›";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 0.15s ease;
+}
+
+.kv-sidebar-group-toggle[aria-expanded="true"] .kv-sidebar-group-arrow::before {
+  transform: rotate(90deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   AUTH TOP ACTIONS FIX
+   Prevents Home/Login/Register buttons from overlapping the auth card.
+═══════════════════════════════════════════════════════════════════════════════ */
+
+.auth-form-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+  justify-items: center;
+  padding: 32px 72px 56px;
+}
+
+.auth-top-actions {
+  position: static;
+  top: auto;
+  right: auto;
+  justify-self: end;
+  align-self: start;
+  margin-bottom: 28px;
+  z-index: 2;
+}
+
+.auth-card-split {
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  width: min(100%, 560px);
+}
+
+/* Medium screens: keep buttons in normal flow above the card */
+@media (max-width: 960px) {
+  .auth-form-panel {
+    grid-template-rows: auto auto;
+    min-height: auto;
+    padding: 24px 28px 48px;
+  }
+
+  .auth-top-actions {
+    justify-self: end;
+    margin-bottom: 24px;
+  }
+
+  .auth-card-split {
+    grid-row: 2;
+    align-self: start;
+  }
+}
+
+/* Mobile: allow the buttons to wrap safely */
+@media (max-width: 640px) {
+  .auth-form-panel {
+    padding: 20px 20px 36px;
+  }
+
+  .auth-top-actions {
+    width: 100%;
+    justify-self: stretch;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .auth-top-nav-button {
+    min-width: auto;
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SIDEBAR GROUP ARROW FIX
+   Keeps the arrow perfectly centered and only changes direction.
+═══════════════════════════════════════════════════════════════════════════════ */
+
+.kv-sidebar-group-arrow {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 8px;
+  background: rgba(192, 213, 228, 0.38);
+  color: #5983ab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.kv-sidebar-group-arrow::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+
+/* Expanded: arrow points down */
+.kv-sidebar-group-toggle[aria-expanded="true"] .kv-sidebar-group-arrow::before {
+  transform: translate(-50%, -62%) rotate(45deg);
+}
+
+/* Collapsed: arrow points right */
+.kv-sidebar-group-toggle[aria-expanded="false"]
+  .kv-sidebar-group-arrow::before {
+  transform: translate(-62%, -50%) rotate(-45deg);
+}
+
+.kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
+  background: #eef7fc;
+  color: #1c538e;
+}
+
+html[data-theme="dark"] .kv-sidebar-group-arrow {
+  background: rgba(49, 80, 111, 0.56);
+  color: #91ddf9;
+}
+
+html[data-theme="dark"] .kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
+  background: rgba(72, 191, 236, 0.18);
+  color: #91ddf9;
 }
