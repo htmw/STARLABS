@@ -35,6 +35,7 @@ type HistoryImage = GalleryImage & {
   grade?: string;
   confidence?: number;
   severityLabel?: string;
+  imageData?: string | null;
 };
 
 type SavedPrediction = {
@@ -300,6 +301,7 @@ function HistoryPage({
           id: img.id,
           url: img.imageData || `${BACKEND}${img.fileUrl}`,
           fileUrl: img.fileUrl,
+          imageData: img.imageData || null,
           originalName: img.originalName,
           contentType: img.contentType,
           createdAt: img.createdAt,
