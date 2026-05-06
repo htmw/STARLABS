@@ -36,7 +36,7 @@ function authHeader(): Record<string, string> {
 
 function buildRealAnalysis(savedItem: any, prediction: any): AnalysisResult {
   return {
-    imageUrl: `${BACKEND}${savedItem.fileUrl}`,
+    imageUrl: savedItem.imageData || `${BACKEND}${savedItem.fileUrl}`,
     fileName: savedItem.originalName || "Uploaded image",
     grade: prediction.grade,
     confidence: prediction.confidence,
@@ -245,8 +245,9 @@ function UploadPage({
 
       const mapped: GalleryImage[] = data.map((img: any) => ({
         id: img.id,
-        url: `${BACKEND}${img.fileUrl}`,
+        url: img.imageData || `${BACKEND}${img.fileUrl}`,
         fileUrl: img.fileUrl,
+        imageData: img.imageData || null,
         originalName: img.originalName,
         contentType: img.contentType,
         createdAt: img.createdAt,

@@ -298,7 +298,7 @@ function HistoryPage({
 
         return {
           id: img.id,
-          url: `${BACKEND}${img.fileUrl}`,
+          url: img.imageData || `${BACKEND}${img.fileUrl}`,
           fileUrl: img.fileUrl,
           originalName: img.originalName,
           contentType: img.contentType,

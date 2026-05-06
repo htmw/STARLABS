@@ -34,6 +34,7 @@ type PredictionImageRef = {
   fileUrl?: string;
   originalName?: string;
   createdAt?: string;
+  imageData?: string | null;
 };
 
 type SavedPrediction = {
@@ -259,7 +260,7 @@ function App() {
       }
 
       const result: AnalysisResult = {
-        imageUrl: `${BACKEND}${matched.fileUrl}`,
+        imageUrl: image.imageData || `${BACKEND}${matched.fileUrl}`,
         fileName: image.originalName || "Uploaded image",
         grade: matched.result.grade,
         confidence: matched.result.confidence,
