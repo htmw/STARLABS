@@ -24,6 +24,20 @@ function getUserData() {
     }
 }
 
+function getLastLogin(): string {
+    const raw = localStorage.getItem("kv-last-login");
+    if (!raw) return "Not available";
+    const date = new Date(raw);
+    if (isNaN(date.getTime())) return "Not available";
+    return date.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+    });
+}
+
 function ProfilePage({
     onLogout,
     onGoToDashboard,
@@ -34,29 +48,48 @@ function ProfilePage({
 }: ProfilePageProps) {
     const userData = getUserData();
 
+    // Account info
     const [username, setUsername] = useState(userData.username);
     const [newUsername, setNewUsername] = useState("");
     const [usernameError, setUsernameError] = useState("");
 
+    // Photo
     const [photoSrc, setPhotoSrc] = useState<string | null>(() =>
         localStorage.getItem("kv-profile-photo"),
     );
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Password
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [passwordError, setPasswordError] = useState("");
 
+    // Toast
     const [toast, setToast] = useState("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
+
+    // Delete modal
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
     const showToast = (message: string, type: "success" | "error" = "success") => {
         setToast(message);
         setToastType(type);
         window.setTimeout(() => setToast(""), 2200);
     };
+
+    const openDeleteModal = () => {
+        setDeleteConfirmText("");
+        setShowDeleteModal(true);
+    };
+
+    const closeDeleteModal = () => {
+        setDeleteConfirmText("");
+        setShowDeleteModal(false);
+    };
+
+    // ── Handlers ─────────────────────────────────────────────────────────────
 
     const handleUsernameSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -98,17 +131,19 @@ function ProfilePage({
             // TODO: POST /api/v1/users/photo when backend endpoint exists
             localStorage.setItem("kv-profile-photo", dataUrl);
             setPhotoSrc(dataUrl);
+            window.dispatchEvent(new Event("kv:profile-updated"));
             showToast("Profile photo updated.");
         };
         reader.readAsDataURL(file);
 
-        // Reset input so the same file can be re-selected
+        // Reset so the same file can be re-selected
         e.target.value = "";
     };
 
     const handleRemovePhoto = () => {
         localStorage.removeItem("kv-profile-photo");
         setPhotoSrc(null);
+        window.dispatchEvent(new Event("kv:profile-updated"));
         showToast("Profile photo removed.");
     };
 
@@ -145,8 +180,8 @@ function ProfilePage({
         onLogout();
     };
 
-    const displayLabel = username || userData.email || "U";
-    const initial = displayLabel.trim().charAt(0).toUpperCase();
+    // Derive avatar initial: username → email → "U"
+    const initial = (username || userData.email || "U").trim().charAt(0).toUpperCase();
 
     return (
         <AppShell
@@ -181,7 +216,9 @@ function ProfilePage({
                         <div className="kv-settings-row">
                             <div>
                                 <strong>Username</strong>
-                                <span>{username || "Not set"}</span>
+                                <span>
+                                    {username || "Not set yet — choose a display name"}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -249,10 +286,14 @@ function ProfilePage({
                                     className="kv-profile-remove-btn"
                                     onClick={handleRemovePhoto}
                                 >
-                                    Remove
+                                    Remove Photo
                                 </button>
                             ) : null}
                         </div>
+
+                        <p className="kv-profile-photo-hint">
+                            JPG or PNG recommended. Stored locally for this MVP.
+                        </p>
                     </div>
                 </div>
 
@@ -318,8 +359,58 @@ function ProfilePage({
                     </form>
                 </div>
 
+                {/* Session & Security */}
+                <div className="kv-panel kv-settings-panel">
+                    <div className="kv-panel-header">
+                        <div>
+                            <h3>Session &amp; Security</h3>
+                            <p>Your current login session details.</p>
+                        </div>
+                    </div>
+
+                    <div className="kv-settings-list kv-profile-session-list">
+                        <div className="kv-settings-row">
+                            <div>
+                                <strong>Logged In As</strong>
+                                <span>{userData.email || "Unknown"}</span>
+                            </div>
+                        </div>
+
+                        <div className="kv-settings-row">
+                            <div>
+                                <strong>Session Status</strong>
+                                <span className="kv-profile-session-status">
+                                    <span className="kv-profile-status-dot" aria-hidden="true" />
+                                    Active
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="kv-settings-row">
+                            <div>
+                                <strong>Last Login</strong>
+                                <span>{getLastLogin()}</span>
+                            </div>
+                        </div>
+
+                        <div className="kv-settings-row">
+                            <div>
+                                <strong>Sign Out</strong>
+                                <span>End your current session.</span>
+                            </div>
+                            <button
+                                type="button"
+                                className="kv-profile-remove-btn"
+                                onClick={onLogout}
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Danger Zone */}
-                <div className="kv-panel kv-settings-panel kv-settings-reset-panel">
+                <div className="kv-panel kv-settings-panel kv-settings-reset-panel kv-profile-danger-section">
                     <div>
                         <h3>Danger Zone</h3>
                         <p>
@@ -330,7 +421,7 @@ function ProfilePage({
                     <button
                         type="button"
                         className="kv-settings-reset-button"
-                        onClick={() => setShowDeleteModal(true)}
+                        onClick={openDeleteModal}
                     >
                         Delete Account
                     </button>
@@ -342,7 +433,7 @@ function ProfilePage({
             {showDeleteModal ? (
                 <div
                     className="kv-confirm-backdrop"
-                    onClick={() => setShowDeleteModal(false)}
+                    onClick={closeDeleteModal}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="kv-delete-title"
@@ -359,17 +450,34 @@ function ProfilePage({
                                 saved analyses. This action cannot be undone.
                             </p>
                         </div>
+
+                        <div className="kv-profile-delete-confirm">
+                            <label htmlFor="kv-delete-input">
+                                Type <strong>DELETE</strong> to confirm
+                            </label>
+                            <input
+                                id="kv-delete-input"
+                                type="text"
+                                placeholder="DELETE"
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                autoComplete="off"
+                                spellCheck={false}
+                            />
+                        </div>
+
                         <div className="kv-confirm-actions">
                             <button
                                 type="button"
                                 className="kv-confirm-cancel"
-                                onClick={() => setShowDeleteModal(false)}
+                                onClick={closeDeleteModal}
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
                                 className="kv-confirm-delete"
+                                disabled={deleteConfirmText.trim().toUpperCase() !== "DELETE"}
                                 onClick={handleDeleteAccount}
                             >
                                 Delete Account

@@ -66,6 +66,8 @@ function LoginForm({ onLoginSuccess }: LoginFormProps) {
         localStorage.setItem("user", JSON.stringify(data.user));
       }
 
+      localStorage.setItem("kv-last-login", new Date().toISOString());
+
       onLoginSuccess();
     } catch (err) {
       const message =

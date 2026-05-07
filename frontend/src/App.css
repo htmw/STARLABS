@@ -4972,10 +4972,13 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
   gap: 18px;
+  align-items: stretch;
 }
 
 .kv-settings-panel {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .kv-theme-choice-grid {
@@ -5233,6 +5236,7 @@ body {
 .kv-settings-reset-panel {
   grid-column: 1 / -1;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
@@ -6271,9 +6275,12 @@ html[data-theme="dark"] .kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
 /* ─── Profile Page ──────────────────────────────────────────────────────── */
 
 .kv-profile-form {
-  display: grid;
-  gap: 14px;
-  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .kv-profile-form-field {
@@ -6290,7 +6297,7 @@ html[data-theme="dark"] .kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
 
 .kv-profile-form-field input {
   width: 100%;
-  padding: 11px 14px;
+  padding: 9px 12px;
   background: #f8fafc;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
@@ -6327,7 +6334,9 @@ html[data-theme="dark"] .kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
 }
 
 .kv-profile-submit-btn {
-  align-self: start;
+  justify-self: start;
+  width: 100%;
+  max-width: 260px;
   padding: 10px 18px;
   background: linear-gradient(90deg, #1c538e 0%, #48bfec 100%);
   color: #ffffff;
@@ -6381,20 +6390,20 @@ html[data-theme="dark"] .kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
 }
 
 .kv-profile-avatar-lg {
-  width: 80px;
-  height: 80px;
-  border-radius: 22px;
+  width: 220px;
+  height: 220px;
+  border-radius: 30px;
   background: linear-gradient(135deg, #1c538e 0%, #48bfec 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--ff-head);
-  font-size: 32px;
+  font-size: 48px;
   font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
@@ -6412,6 +6421,113 @@ html[data-theme="dark"] .kv-sidebar-group-toggle:hover .kv-sidebar-group-arrow {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.kv-profile-photo-hint {
+  margin: 0;
+  color: #8fa0b4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Session status indicator */
+.kv-profile-session-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.kv-profile-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px rgba(13, 122, 78, 0.18);
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .kv-profile-status-dot {
+  background: #34d399;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2);
+}
+
+/* Keep Upload / Remove buttons natural-width in their flex row */
+.kv-profile-photo-actions .kv-profile-submit-btn {
+  width: auto;
+  max-width: none;
+}
+
+/* Compact row padding in Session & Security panel */
+.kv-profile-session-list .kv-settings-row {
+  padding: 10px 14px;
+}
+
+/* Extra breathing room above the Danger Zone card */
+.kv-profile-danger-section {
+  margin-top: 10px;
+}
+
+/* DELETE confirmation input inside the confirm modal */
+.kv-profile-delete-confirm {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.kv-profile-delete-confirm label {
+  color: #5983ab;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.kv-profile-delete-confirm label strong {
+  color: #c0392b;
+  font-weight: 800;
+  font-family: var(--ff-head);
+  letter-spacing: 0.04em;
+}
+
+.kv-profile-delete-confirm input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #fff5f5;
+  border: 1.5px solid #fecaca;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--ff-head);
+  font-weight: 800;
+  color: #c0392b;
+  letter-spacing: 0.06em;
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.kv-profile-delete-confirm input::placeholder {
+  color: #fca5a5;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.kv-profile-delete-confirm input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Sidebar avatar: show photo when available */
+.kv-user-avatar {
+  overflow: hidden;
+}
+
+.kv-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* Error variant for the settings toast */
@@ -6456,4 +6572,22 @@ html[data-theme="dark"] .kv-profile-remove-btn:hover {
   border-color: #fca5a5;
   color: #fca5a5;
   background: rgba(192, 57, 43, 0.12);
+}
+
+html[data-theme="dark"] .kv-profile-photo-hint {
+  color: #5983ab;
+}
+
+html[data-theme="dark"] .kv-profile-delete-confirm label {
+  color: #91ddf9;
+}
+
+html[data-theme="dark"] .kv-profile-delete-confirm input {
+  background: rgba(192, 57, 43, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .kv-profile-delete-confirm input::placeholder {
+  color: rgba(239, 68, 68, 0.4);
 }
