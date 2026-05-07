@@ -95,6 +95,16 @@ function AppShell({
             );
         });
 
+    const goToProfile =
+        onGoToProfile ||
+        (() => {
+            window.dispatchEvent(
+                new CustomEvent("kv:navigate", {
+                    detail: { view: "profile" },
+                }),
+            );
+        });
+
     const workspaceNavItems = [
         {
             key: "dashboard" as const,
@@ -127,7 +137,7 @@ function AppShell({
             key: "profile" as const,
             label: "Profile",
             icon: "U",
-            onClick: onGoToProfile,
+            onClick: goToProfile,
         },
         {
             key: "settings" as const,
