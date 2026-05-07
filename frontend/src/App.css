@@ -36,6 +36,8 @@
 
   --ff-body: "Inter", sans-serif;
   --ff-head: "Plus Jakarta Sans", sans-serif;
+
+  --gradient-brand: linear-gradient(145deg, #1c538e 0%, #2679b4 48%, #48bfec 100%);
 }
 
 /* ─── Reset ─────────────────────────────────────────────────────────────────── */
@@ -124,7 +126,8 @@ body {
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  background: var(--brand);
+  background: var(--gradient-brand);
+  box-shadow: 0 2px 8px rgba(28, 83, 142, 0.28);
 }
 
 .landing-nav-actions {
@@ -135,39 +138,41 @@ body {
 .btn-ghost {
   padding: 8px 18px;
   background: transparent;
-  border: 1.5px solid var(--border-dark);
+  border: 1.5px solid #b8cfe8;
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: #1c538e;
   font-family: var(--ff-body);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
 }
 .btn-ghost:hover {
-  border-color: var(--brand);
-  color: var(--brand);
-  background: var(--brand-light);
+  border-color: #48bfec;
+  color: #1c538e;
+  background: #eef7fc;
 }
 
 .btn-primary-sm {
   padding: 8px 20px;
-  background: var(--brand);
+  background: var(--gradient-brand);
   border: none;
   border-radius: var(--radius-sm);
   color: #fff;
   font-family: var(--ff-body);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition:
-    background 0.15s,
-    transform 0.1s;
-  box-shadow: var(--shadow-btn);
+    opacity 0.15s,
+    transform 0.1s,
+    box-shadow 0.15s;
+  box-shadow: 0 4px 12px rgba(28, 83, 142, 0.28);
 }
 .btn-primary-sm:hover {
-  background: var(--brand-dark);
+  opacity: 0.92;
   transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(28, 83, 142, 0.34);
 }
 
 /* Hero */
@@ -179,6 +184,10 @@ body {
   justify-content: center;
   text-align: center;
   padding: 80px 24px 60px;
+  background:
+    radial-gradient(circle at 78% 12%, rgba(145, 221, 249, 0.22), transparent 38%),
+    radial-gradient(circle at 12% 88%, rgba(72, 191, 236, 0.16), transparent 34%),
+    var(--gradient-brand);
 }
 
 .landing-badge {
@@ -354,6 +363,58 @@ body {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+/* ── Landing hero: color overrides for dark gradient background ─────────── */
+.landing-hero .landing-title {
+  color: #ffffff;
+}
+
+.landing-hero .landing-title em {
+  color: #91ddf9;
+}
+
+.landing-hero .landing-desc {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.landing-hero .landing-stats {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.landing-hero .landing-stat-value {
+  color: #ffffff;
+}
+
+.landing-hero .landing-stat-label {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.landing-hero .btn-cta-primary {
+  background: #ffffff;
+  color: #1c538e;
+  font-weight: 700;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
+}
+
+.landing-hero .btn-cta-primary:hover {
+  background: #f0f7ff;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.32), 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+
+.landing-hero .btn-cta-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.landing-hero .btn-cta-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.85);
+  color: #ffffff;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -576,7 +637,7 @@ body {
       rgba(72, 191, 236, 0.2),
       transparent 30%
     ),
-    linear-gradient(145deg, #1c538e 0%, #2679b4 48%, #48bfec 100%);
+    var(--gradient-brand);
 }
 
 .auth-hero-pattern {
@@ -6006,6 +6067,27 @@ html[data-theme="dark"] .auth-switch-text,
 html[data-theme="dark"] .auth-card-split .auth-subtitle,
 html[data-theme="dark"] .auth-card-split .auth-switch-text {
   color: #5a6a7e;
+}
+
+/* Dark mode: keep landing hero text white over the blue gradient */
+html[data-theme="dark"] .landing-hero .landing-title {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .landing-hero .landing-title em {
+  color: #91ddf9;
+}
+
+html[data-theme="dark"] .landing-hero .landing-desc {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+html[data-theme="dark"] .landing-hero .landing-stat-value {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .landing-hero .landing-stat-label {
+  color: rgba(255, 255, 255, 0.65);
 }
 
 html[data-theme="dark"] .auth-page {
