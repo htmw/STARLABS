@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 type AppPage =
     | "dashboard"
@@ -85,12 +85,36 @@ function AppShell({
         getStoredCollapsedState("kv-sidebar-account-collapsed", false),
     );
 
+    const [avatarPhoto, setAvatarPhoto] = useState<string | null>(() =>
+        localStorage.getItem("kv-profile-photo"),
+    );
+
+    useEffect(() => {
+        const handleProfileUpdated = () => {
+            setAvatarPhoto(localStorage.getItem("kv-profile-photo"));
+        };
+        window.addEventListener("kv:profile-updated", handleProfileUpdated);
+        return () => {
+            window.removeEventListener("kv:profile-updated", handleProfileUpdated);
+        };
+    }, []);
+
     const goToSettings =
         onGoToSettings ||
         (() => {
             window.dispatchEvent(
                 new CustomEvent("kv:navigate", {
                     detail: { view: "settings" },
+                }),
+            );
+        });
+
+    const goToProfile =
+        onGoToProfile ||
+        (() => {
+            window.dispatchEvent(
+                new CustomEvent("kv:navigate", {
+                    detail: { view: "profile" },
                 }),
             );
         });
@@ -127,7 +151,7 @@ function AppShell({
             key: "profile" as const,
             label: "Profile",
             icon: "U",
-            onClick: onGoToProfile,
+            onClick: goToProfile,
         },
         {
             key: "settings" as const,
@@ -292,7 +316,13 @@ function AppShell({
 
                 <div className="kv-sidebar-bottom">
                     <div className="kv-user-card">
-                        <div className="kv-user-avatar">{getInitial(userLabel)}</div>
+                        <div className="kv-user-avatar">
+                            {avatarPhoto ? (
+                                <img src={avatarPhoto} alt="Profile" />
+                            ) : (
+                                getInitial(userLabel)
+                            )}
+                        </div>
 
                         <div className="kv-user-meta">
                             <strong>{userLabel}</strong>

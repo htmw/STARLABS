@@ -9,6 +9,7 @@ import DashboardPage from "./pages/DashboardPage";
 import HistoryPage from "./pages/HistoryPage";
 import QuizPage from "./pages/QuizPage";
 import SettingsPage from "./pages/SettingsPage";
+import ProfilePage from "./pages/ProfilePage";
 
 import API_BASE_URL from "../src/config";
 
@@ -27,7 +28,8 @@ type AppView =
   | "results"
   | "history"
   | "quiz"
-  | "settings";
+  | "settings"
+  | "profile";
 
 type PredictionImageRef = {
   id?: string;
@@ -141,7 +143,8 @@ function App() {
         nextView === "results" ||
         nextView === "history" ||
         nextView === "quiz" ||
-        nextView === "settings"
+        nextView === "settings" ||
+        nextView === "profile"
       ) {
         setAppView(nextView);
       }
@@ -223,6 +226,10 @@ function App() {
 
   const handleGoToSettings = () => {
     setAppView("settings");
+  };
+
+  const handleGoToProfile = () => {
+    setAppView("profile");
   };
 
   const handleOpenSavedAnalysis = async (
@@ -438,6 +445,19 @@ function App() {
     if (appView === "settings") {
       return (
         <SettingsPage
+          onLogout={handleLogout}
+          onGoToDashboard={handleGoToDashboard}
+          onGoToUpload={handleGoToUpload}
+          onGoToHistory={handleGoToHistory}
+          onGoToQuiz={handleGoToQuiz}
+          onSearchCase={handleSearchCase}
+        />
+      );
+    }
+
+    if (appView === "profile") {
+      return (
+        <ProfilePage
           onLogout={handleLogout}
           onGoToDashboard={handleGoToDashboard}
           onGoToUpload={handleGoToUpload}
