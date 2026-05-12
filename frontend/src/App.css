@@ -6900,3 +6900,179 @@ html[data-theme="dark"] .results-similar-image-frame {
 html[data-theme="dark"] .results-similar-no-image {
   color: #8fa9c4;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK MODE FIX — Quiz feedback, summary, and leaderboard
+   Fixes unreadable light cards and spacing issues in Quiz page.
+═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Quiz feedback result card */
+html[data-theme="dark"] .quiz-feedback-card,
+html[data-theme="dark"] .kv-quiz-feedback-card {
+  background: rgba(16, 29, 49, 0.9);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-feedback-card h3,
+html[data-theme="dark"] .kv-quiz-feedback-card h3 {
+  color: #e8f2ff;
+}
+
+/* The small finding boxes inside feedback */
+html[data-theme="dark"] .quiz-finding,
+html[data-theme="dark"] .kv-quiz-feedback-card .quiz-finding {
+  background: rgba(8, 17, 31, 0.78);
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .quiz-finding span {
+  color: #8fa9c4;
+}
+
+html[data-theme="dark"] .quiz-finding strong {
+  color: #e8f2ff;
+}
+
+/* Explanation paragraph box */
+html[data-theme="dark"] .quiz-findings-text,
+html[data-theme="dark"] .kv-quiz-feedback-card .quiz-findings-text {
+  background: rgba(8, 17, 31, 0.78);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #cfe0f2;
+}
+
+/* Score / question meta line */
+html[data-theme="dark"] .quiz-feedback-meta {
+  color: #cfe0f2;
+}
+
+/* Give feedback card content more breathing room */
+.quiz-feedback-card,
+.kv-quiz-feedback-card {
+  gap: 18px;
+}
+
+.quiz-feedback-meta {
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
+.kv-quiz-next-btn,
+.quiz-next-btn {
+  margin-top: 12px;
+}
+
+/* Summary / leaderboard page */
+html[data-theme="dark"] .quiz-summary-card,
+html[data-theme="dark"] .kv-quiz-summary-card,
+html[data-theme="dark"] .quiz-leaderboard,
+html[data-theme="dark"] .kv-quiz-leaderboard-panel {
+  background: rgba(16, 29, 49, 0.9);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-summary-card h1,
+html[data-theme="dark"] .quiz-summary-card h2,
+html[data-theme="dark"] .kv-quiz-summary-card h1,
+html[data-theme="dark"] .kv-quiz-summary-card h2,
+html[data-theme="dark"] .quiz-breakdown h3 {
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-summary-pct,
+html[data-theme="dark"] .kv-quiz-summary-card > p {
+  color: #a9bdd4;
+}
+
+/* Summary stat boxes */
+html[data-theme="dark"] .quiz-stat,
+html[data-theme="dark"] .kv-quiz-summary-card .quiz-stat {
+  background: rgba(8, 17, 31, 0.78);
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .quiz-stat span {
+  color: #8fa9c4;
+}
+
+html[data-theme="dark"] .quiz-stat strong {
+  color: #e8f2ff;
+}
+
+/* Breakdown rows */
+html[data-theme="dark"] .quiz-breakdown-row {
+  color: #cfe0f2;
+}
+
+html[data-theme="dark"] .quiz-breakdown-track {
+  background: rgba(49, 80, 111, 0.65);
+}
+
+html[data-theme="dark"] .quiz-breakdown-fill {
+  background: linear-gradient(90deg, #48bfec 0%, #91ddf9 100%);
+}
+
+/* Leaderboard rows */
+html[data-theme="dark"] .quiz-leaderboard-row {
+  background: rgba(8, 17, 31, 0.72);
+  border-bottom-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .quiz-leaderboard-row--gold,
+html[data-theme="dark"] .quiz-leaderboard-row--silver,
+html[data-theme="dark"] .quiz-leaderboard-row--bronze {
+  background: rgba(12, 24, 41, 0.96);
+}
+
+html[data-theme="dark"] .quiz-leaderboard-rank,
+html[data-theme="dark"] .quiz-leaderboard-score {
+  color: #91ddf9;
+}
+
+html[data-theme="dark"] .quiz-leaderboard-email {
+  color: #d9e8f8;
+}
+
+html[data-theme="dark"] .quiz-leaderboard-accuracy {
+  color: #a9bdd4;
+}
+
+/* Back button on leaderboard */
+html[data-theme="dark"] .quiz-leaderboard .secondary-button,
+html[data-theme="dark"] .kv-quiz-leaderboard-panel .secondary-button {
+  background: rgba(8, 17, 31, 0.88);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-leaderboard .secondary-button:hover,
+html[data-theme="dark"] .kv-quiz-leaderboard-panel .secondary-button:hover {
+  background: rgba(72, 191, 236, 0.14);
+  border-color: rgba(145, 221, 249, 0.55);
+  color: #91ddf9;
+}
+
+html[data-theme="dark"] .quiz-rule,
+html[data-theme="dark"] .kv-quiz-rule {
+  background: rgba(8, 17, 31, 0.78);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #cfe0f2;
+}
+
+html[data-theme="dark"] .quiz-rule span,
+html[data-theme="dark"] .kv-quiz-rule span {
+  background: linear-gradient(135deg, #1c538e 0%, #48bfec 100%);
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .quiz-rule p,
+html[data-theme="dark"] .kv-quiz-rule p {
+  color: #cfe0f2;
+}
+
+html[data-theme="dark"] .quiz-rule strong,
+html[data-theme="dark"] .kv-quiz-rule strong {
+  color: #e8f2ff;
+}
