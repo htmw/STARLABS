@@ -37,7 +37,12 @@
   --ff-body: "Inter", sans-serif;
   --ff-head: "Plus Jakarta Sans", sans-serif;
 
-  --gradient-brand: linear-gradient(145deg, #1c538e 0%, #2679b4 48%, #48bfec 100%);
+  --gradient-brand: linear-gradient(
+    145deg,
+    #1c538e 0%,
+    #2679b4 48%,
+    #48bfec 100%
+  );
 }
 
 /* ─── Reset ─────────────────────────────────────────────────────────────────── */
@@ -185,8 +190,16 @@ body {
   text-align: center;
   padding: 80px 24px 60px;
   background:
-    radial-gradient(circle at 78% 12%, rgba(145, 221, 249, 0.22), transparent 38%),
-    radial-gradient(circle at 12% 88%, rgba(72, 191, 236, 0.16), transparent 34%),
+    radial-gradient(
+      circle at 78% 12%,
+      rgba(145, 221, 249, 0.22),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 12% 88%,
+      rgba(72, 191, 236, 0.16),
+      transparent 34%
+    ),
     var(--gradient-brand);
 }
 
@@ -394,13 +407,17 @@ body {
   background: #ffffff;
   color: #1c538e;
   font-weight: 700;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.14);
 }
 
 .landing-hero .btn-cta-primary:hover {
   background: #f0f7ff;
   transform: translateY(-3px);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.32), 0 4px 12px rgba(0, 0, 0, 0.16);
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.32),
+    0 4px 12px rgba(0, 0, 0, 0.16);
 }
 
 .landing-hero .btn-cta-secondary {
@@ -6672,4 +6689,214 @@ html[data-theme="dark"] .kv-profile-delete-confirm input {
 
 html[data-theme="dark"] .kv-profile-delete-confirm input::placeholder {
   color: rgba(239, 68, 68, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK MODE CONTRAST FIX
+   Fixes unreadable text inside result summary cards, gallery cards, and quiz cards.
+═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Results summary / finding boxes */
+html[data-theme="dark"] .results-summary-mini,
+html[data-theme="dark"] .results-info-box,
+html[data-theme="dark"] .kv-results-detail-grid .results-info-box {
+  background: rgba(8, 17, 31, 0.78);
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .results-summary-mini span,
+html[data-theme="dark"] .results-info-box span,
+html[data-theme="dark"] .kv-results-detail-grid .results-info-box span {
+  color: #8fa9c4;
+}
+
+html[data-theme="dark"] .results-summary-mini strong,
+html[data-theme="dark"] .results-info-box strong,
+html[data-theme="dark"] .kv-results-detail-grid .results-info-box strong {
+  color: #e8f2ff;
+}
+
+/* Results probability rows */
+html[data-theme="dark"] .results-probability-label,
+html[data-theme="dark"] .results-probability-value {
+  color: #d9e8f8;
+}
+
+html[data-theme="dark"] .results-probability-track {
+  background: rgba(49, 80, 111, 0.6);
+}
+
+/* Upload gallery / general gallery cards */
+html[data-theme="dark"] .gallery-card,
+html[data-theme="dark"] .gallery-card-button,
+html[data-theme="dark"] .kv-upload-gallery-panel .gallery-card,
+html[data-theme="dark"] .kv-upload-gallery-panel .gallery-card-button {
+  background: rgba(16, 29, 49, 0.88);
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .gallery-card-label,
+html[data-theme="dark"] .preview-name {
+  background: rgba(8, 17, 31, 0.78);
+  border-top-color: rgba(49, 80, 111, 0.82);
+  color: #d9e8f8;
+}
+
+html[data-theme="dark"] .gallery-card-empty,
+html[data-theme="dark"] .preview-dicom {
+  background: #0b1628;
+  color: #a9bdd4;
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+/* Dashboard recent upload cards */
+html[data-theme="dark"] .dashboard-recent-card,
+html[data-theme="dark"] .dashboard-recent-button,
+html[data-theme="dark"] .kv-recent-card {
+  background: rgba(16, 29, 49, 0.88);
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .dashboard-recent-name,
+html[data-theme="dark"] .kv-recent-meta strong {
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .dashboard-recent-date,
+html[data-theme="dark"] .kv-recent-meta span {
+  color: #a9bdd4;
+}
+
+/* Quiz difficulty cards */
+html[data-theme="dark"] .quiz-difficulty-btn,
+html[data-theme="dark"] .kv-quiz-difficulty-card {
+  background: rgba(16, 29, 49, 0.88);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-difficulty-btn:hover,
+html[data-theme="dark"] .kv-quiz-difficulty-card:hover {
+  background: rgba(72, 191, 236, 0.12);
+  border-color: rgba(145, 221, 249, 0.55);
+}
+
+html[data-theme="dark"] .quiz-difficulty-btn--active,
+html[data-theme="dark"] .kv-quiz-difficulty-card--active {
+  background: linear-gradient(
+    135deg,
+    rgba(72, 191, 236, 0.2),
+    rgba(145, 221, 249, 0.1)
+  );
+  border-color: rgba(145, 221, 249, 0.7);
+}
+
+html[data-theme="dark"] .quiz-difficulty-label,
+html[data-theme="dark"] .kv-quiz-difficulty-card strong {
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .quiz-difficulty-desc,
+html[data-theme="dark"] .kv-quiz-difficulty-card span {
+  color: #a9bdd4;
+}
+
+/* Results chat box */
+html[data-theme="dark"] .results-chat-messages,
+html[data-theme="dark"] .kv-results-chat-section .results-chat-messages {
+  background: rgba(8, 17, 31, 0.78);
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .results-chat-markdown {
+  background: rgba(16, 29, 49, 0.96);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .results-chat-markdown p,
+html[data-theme="dark"] .results-chat-markdown li {
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .results-chat-role {
+  color: #8fa9c4;
+}
+
+html[data-theme="dark"] .results-chat-empty {
+  color: #a9bdd4;
+}
+
+html[data-theme="dark"] .results-chat-input {
+  background: rgba(8, 17, 31, 0.9);
+  border-color: rgba(49, 80, 111, 0.82);
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .results-chat-input::placeholder {
+  color: #8fa9c4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK MODE FIX — Similar Cases
+   Improves contrast for similar case cards in Results page.
+═══════════════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="dark"] .results-similar-section,
+html[data-theme="dark"] .kv-results-similar-section {
+  background: rgba(16, 29, 49, 0.88);
+  border-color: rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .results-similar-card,
+html[data-theme="dark"] .kv-results-similar-section .results-similar-card {
+  background: rgba(12, 24, 41, 0.96);
+  border-color: rgba(49, 80, 111, 0.88);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="dark"] .results-similar-card:hover,
+html[data-theme="dark"]
+  .kv-results-similar-section
+  .results-similar-card:hover {
+  border-color: rgba(145, 221, 249, 0.6);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.26);
+}
+
+html[data-theme="dark"] .results-similar-meta {
+  background: rgba(12, 24, 41, 0.96);
+}
+
+html[data-theme="dark"] .results-similar-grade {
+  color: #e8f2ff;
+}
+
+html[data-theme="dark"] .results-similar-findings {
+  color: #a9bdd4;
+}
+
+html[data-theme="dark"] .results-similar-source {
+  color: #8fa9c4;
+}
+
+html[data-theme="dark"] .results-similar-tag {
+  background: rgba(72, 191, 236, 0.14);
+  border-color: rgba(145, 221, 249, 0.28);
+  color: #91ddf9;
+}
+
+html[data-theme="dark"] .results-similar-badge {
+  background: rgba(8, 17, 31, 0.88);
+  border-color: rgba(145, 221, 249, 0.38);
+  color: #91ddf9;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+html[data-theme="dark"] .results-similar-image-frame {
+  background: #0b1628;
+  border-bottom: 1px solid rgba(49, 80, 111, 0.82);
+}
+
+html[data-theme="dark"] .results-similar-no-image {
+  color: #8fa9c4;
 }
