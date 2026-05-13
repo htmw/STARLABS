@@ -1019,4 +1019,245 @@ app.get("/api/v1/quiz/leaderboard", requireAuth, async (req, res) => {
   }
 });
 // ─── End Quiz endpoints ───────────────────────────────────────────────────────
+
+// ─── Research Workspace endpoints ─────────────────────────────────────────────
+
+const OA_KNOWLEDGE_BASE = `
+OSTEOARTHRITIS KNOWLEDGE BASE (Kellgren-Lawrence Grading System)
+
+KL GRADE DEFINITIONS:
+- Grade 0: No radiographic features of OA. Normal joint space, no osteophytes.
+- Grade 1: Doubtful narrowing of joint space, possible osteophytic lipping. Questionable significance.
+- Grade 2: Definite osteophytes, possible narrowing of joint space. Mild OA.
+- Grade 3: Multiple osteophytes, definite narrowing of joint space, some sclerosis, possible deformity. Moderate OA.
+- Grade 4: Large osteophytes, marked narrowing of joint space, severe sclerosis, definite deformity. Severe OA.
+
+TREATMENT OPTIONS BY GRADE:
+Grade 0-1 (Prevention/Early):
+- Weight management and BMI optimization
+- Low-impact exercise (swimming, cycling, walking)
+- Quadriceps strengthening exercises
+- Patient education on joint protection
+
+Grade 2 (Mild - Conservative):
+- NSAIDs (ibuprofen, naproxen) for pain management
+- Physical therapy focused on range of motion
+- Knee bracing (unloader brace for medial compartment OA)
+- Intra-articular corticosteroid injections (short-term relief)
+- Topical analgesics (diclofenac gel)
+
+Grade 3 (Moderate - Intensive Conservative):
+- All Grade 2 options
+- Hyaluronic acid injections (viscosupplementation)
+- Platelet-rich plasma (PRP) therapy
+- Structured physical therapy programs
+- Assistive devices (cane, walker)
+- Pain management referral
+
+Grade 4 (Severe - Surgical Consideration):
+- Total knee arthroplasty (TKA) - gold standard
+- Unicompartmental knee arthroplasty (UKA) for isolated compartment disease
+- High tibial osteotomy (HTO) for younger patients with varus deformity
+- Arthroscopic debridement (limited evidence)
+
+DIAGNOSTIC FEATURES:
+- Osteophytes: Bony outgrowths at joint margins, pathognomonic of OA
+- Joint space narrowing: Loss of cartilage indicated by reduced space on X-ray
+- Subchondral sclerosis: Increased bone density beneath cartilage
+- Subchondral cysts: Fluid-filled cavities in bone beneath cartilage
+- Varus/valgus deformity: Angular deformity from asymmetric joint destruction
+
+EPIDEMIOLOGY:
+- OA affects approximately 250 million people worldwide
+- Knee OA prevalence increases with age: ~10% in 60s, ~30% in 70s+
+- Risk factors: Age, obesity, female sex, previous joint injury, genetics
+- Radiographic OA does not always correlate with symptom severity
+
+CURRENT RESEARCH AREAS:
+- Disease-modifying osteoarthritis drugs (DMOADs) - no FDA-approved agents yet
+- Stem cell therapy and cartilage regeneration
+- Machine learning for early OA detection (KL Grade 0-1)
+- Biomarkers for OA progression (CTX-II, COMP, hyaluronan)
+- Wearable technology for gait analysis in OA monitoring
+
+
+TRUSTED SOURCES (always cite relevant ones by number):
+[1] Mayo Clinic - Osteoarthritis: https://www.mayoclinic.org/diseases-conditions/osteoarthritis/symptoms-causes/syc-20351925
+[2] NIH - Osteoarthritis: https://www.niams.nih.gov/health-topics/osteoarthritis
+[3] Arthritis Foundation - OA: https://www.arthritis.org/diseases/osteoarthritis
+[4] PubMed - KL Grading System: https://pubmed.ncbi.nlm.nih.gov/13172872/
+[5] NIH - Total Knee Replacement: https://www.niams.nih.gov/health-topics/knee-replacement-surgery
+[6] Arthritis Foundation - Exercise and OA: https://www.arthritis.org/health-wellness/healthy-living/physical-activity/getting-started/best-exercises-for-arthritis
+[7] PubMed - Hyaluronic Acid Injections: https://pubmed.ncbi.nlm.nih.gov/22868364/
+[8] NIH - Weight and Joint Health: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4238740/
+[9] Radiology Society - Knee OA Imaging: https://www.rsna.org/education/trainers-and-educators/cases/knee-osteoarthritis
+[10] PubMed - DMOADs Research: https://pubmed.ncbi.nlm.nih.gov/30368655/
+`;
+
+// Save or update a research session
+app.post("/api/v1/research/session", requireAuth, async (req, res) => {
+  try {
+    const { sessionId, messages, title } = req.body || {};
+
+    if (!messages) {
+      return res.status(400).json({ message: "messages is required." });
+    }
+
+    const db = getDb();
+    const sessions = db.collection("researchSessions");
+
+    const now = new Date().toISOString();
+    const sid = sessionId || new ObjectId().toString();
+
+    await sessions.updateOne(
+      { sessionId: sid, userId: req.user.userId },
+      {
+        $set: {
+          sessionId: sid,
+          userId: req.user.userId,
+          messages,
+          title: title || "Research Session",
+          updatedAt: now,
+        },
+        $setOnInsert: { createdAt: now },
+      },
+      { upsert: true },
+    );
+
+    return res.status(200).json({ ok: true, sessionId: sid });
+  } catch (err) {
+    console.error("Save research session failed:", err);
+    return res.status(500).json({ message: "Failed to save session." });
+  }
+});
+
+// Get all research sessions for the user
+app.get("/api/v1/research/sessions", requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const sessions = db.collection("researchSessions");
+
+    const docs = await sessions
+      .find({ userId: req.user.userId })
+      .sort({ updatedAt: -1 })
+      .toArray();
+
+    return res.status(200).json(
+      docs.map((doc) => ({
+        sessionId: doc.sessionId,
+        title: doc.title,
+        messages: doc.messages,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+      })),
+    );
+  } catch (err) {
+    console.error("Get research sessions failed:", err);
+    return res.status(500).json({ message: "Failed to get sessions." });
+  }
+});
+
+// Delete a research session
+app.delete("/api/v1/research/session/:sessionId", requireAuth, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const db = getDb();
+    const sessions = db.collection("researchSessions");
+
+    await sessions.deleteOne({ sessionId, userId: req.user.userId });
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Delete research session failed:", err);
+    return res.status(500).json({ message: "Failed to delete session." });
+  }
+});
+
+// Research chat — RAG-style with OA knowledge base
+app.post("/api/v1/research/chat", requireAuth, async (req, res) => {
+  try {
+    const { messages, userGrade } = req.body || {};
+
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ message: "messages array is required." });
+    }
+
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!GROQ_API_KEY) {
+      return res.status(500).json({ message: "Groq API key not configured." });
+    }
+
+    const gradeContext = userGrade
+      ? `\nThe user's most recent scan showed: ${userGrade}. Personalize answers to this grade where relevant.\n`
+      : "";
+
+    const systemPrompt = `You are a clinical research assistant specializing in knee osteoarthritis. You help clinicians, researchers, and patients understand OA diagnosis, grading, treatment options, and current research.
+
+${OA_KNOWLEDGE_BASE}
+${gradeContext}
+INSTRUCTIONS:
+- Answer questions using the knowledge base above as your primary source.
+- ALWAYS format your response in this exact structure:
+
+**Summary**
+2-3 sentence overview of the answer.
+
+**Key Points**
+- Point 1
+- Point 2
+- Point 3
+
+**Clinical Note**
+One sentence about evidence level or when to consult a physician.
+
+**Sources**
+[1] Source name - https://url.com
+[2] Source name - https://url.com
+
+- Always cite at least 2 relevant sources from the TRUSTED SOURCES list above using their exact URLs.
+- Only cite sources that are actually relevant to the question.
+- If asked something outside OA/orthopedics, politely redirect to OA topics.`;
+
+    const chatMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((msg) => ({
+        role: msg.role === "assistant" ? "assistant" : "user",
+        content: msg.content,
+      })),
+    ];
+
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          messages: chatMessages,
+          max_tokens: 1024,
+          temperature: 0.3,
+        }),
+      },
+    );
+
+    if (!groqResponse.ok) {
+      const err = await groqResponse.text();
+      throw new Error(`Groq API error (${groqResponse.status}): ${err}`);
+    }
+
+    const groqData = await groqResponse.json();
+    const reply =
+      groqData.choices?.[0]?.message?.content ?? "No response generated.";
+
+    return res.status(200).json({ reply });
+  } catch (err) {
+    console.error("Research chat failed:", err);
+    return res.status(500).json({ message: "Research chat request failed." });
+  }
+});
+
+// ─── End Research Workspace endpoints ─────────────────────────────────────────
 startServer();

@@ -14,6 +14,7 @@ type UploadPageProps = {
   onGoToDashboard: () => void;
   onGoToHistory: () => void;
   onGoToQuiz: () => void;
+  onGoToResearch?: () => void;
   onOpenGalleryImage: (image: GalleryImage) => void;
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
@@ -215,6 +216,7 @@ function UploadPage({
   onGoToDashboard,
   onGoToHistory,
   onGoToQuiz,
+  onGoToResearch,
   onOpenGalleryImage,
   onSearchCase,
 }: UploadPageProps) {
@@ -351,6 +353,7 @@ function UploadPage({
       onGoToDashboard={onGoToDashboard}
       onGoToHistory={onGoToHistory}
       onGoToQuiz={onGoToQuiz}
+      onGoToResearch={onGoToResearch}
       onLogout={onLogout}
       onSearchCase={onSearchCase}
     >

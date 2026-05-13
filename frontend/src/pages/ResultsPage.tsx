@@ -58,6 +58,7 @@ type ResultsPageProps = {
   onBackToDashboard: () => void;
   onGoToHistory: () => void;
   onGoToQuiz: () => void;
+  onGoToResearch?: () => void;
   onLogout: () => void;
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
@@ -71,6 +72,7 @@ function ResultsPage({
   onBackToDashboard,
   onGoToHistory,
   onGoToQuiz,
+  onGoToResearch,
   onLogout,
   onSearchCase,
 }: ResultsPageProps) {
@@ -228,6 +230,7 @@ function ResultsPage({
       onGoToUpload={onBackToUpload}
       onGoToHistory={onGoToHistory}
       onGoToQuiz={onGoToQuiz}
+      onGoToResearch={onGoToResearch}
       onLogout={onLogout}
       onSearchCase={onSearchCase}
     >

@@ -46,6 +46,7 @@ type QuizPageProps = {
   onGoToHistory: () => void;
   onLogout: () => void;
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
+  onGoToResearch?: () => void;
 };
 
 // const BACKEND = "http://localhost:4000";
@@ -83,6 +84,7 @@ function QuizPage({
   onGoToHistory,
   onLogout,
   onSearchCase,
+  onGoToResearch,
 }: QuizPageProps) {
   const [screen, setScreen] = useState<
     "intro" | "quiz" | "feedback" | "summary" | "leaderboard"
@@ -267,6 +269,7 @@ function QuizPage({
       onGoToDashboard={onBackToDashboard}
       onGoToUpload={onGoToUpload}
       onGoToHistory={onGoToHistory}
+      onGoToResearch={onGoToResearch}
       onLogout={onLogout}
       onSearchCase={onSearchCase}
     >
