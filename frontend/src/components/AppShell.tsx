@@ -7,7 +7,8 @@ type AppPage =
     | "results"
     | "quiz"
     | "profile"
-    | "settings";
+    | "settings"
+    | "research";
 
 type SearchResult = {
     ok: boolean;
@@ -27,6 +28,7 @@ type AppShellProps = {
     onGoToSettings?: () => void;
     onLogout: () => void;
     onSearchCase?: (query: string) => Promise<SearchResult>;
+    onGoToResearch?: () => void;
 };
 
 function getUserLabel() {
@@ -68,6 +70,7 @@ function AppShell({
     onGoToSettings,
     onLogout,
     onSearchCase,
+    onGoToResearch,
 }: AppShellProps) {
     const userLabel = getUserLabel();
 
@@ -350,7 +353,13 @@ function AppShell({
                             })}
                         </span>
 
-                        <span className="kv-topbar-pill">AI Research Workspace</span>
+                        <button
+    type="button"
+    className="kv-topbar-pill kv-topbar-pill--clickable"
+    onClick={onGoToResearch}
+>
+    AI Research Workspace
+</button>
                     </div>
                 </header>
 

@@ -9,6 +9,7 @@ type SettingsPageProps = {
     onGoToUpload: () => void;
     onGoToHistory: () => void;
     onGoToQuiz: () => void;
+    onGoToResearch?: () => void;
     onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
@@ -36,6 +37,7 @@ function SettingsPage({
     onGoToUpload,
     onGoToHistory,
     onGoToQuiz,
+    onGoToResearch,
     onSearchCase,
 }: SettingsPageProps) {
     const [theme, setTheme] = useState<ThemeMode>(() => readStoredTheme());
@@ -112,6 +114,7 @@ function SettingsPage({
             onGoToUpload={onGoToUpload}
             onGoToHistory={onGoToHistory}
             onGoToQuiz={onGoToQuiz}
+            onGoToResearch={onGoToResearch}
             onLogout={onLogout}
             onSearchCase={onSearchCase}
         >

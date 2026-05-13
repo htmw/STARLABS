@@ -13,6 +13,7 @@ type HistoryPageProps = {
   onGoToQuiz: () => void;
   onOpenHistoryImage: (image: GalleryImage) => void;
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
+  onGoToResearch?: () => void;
 };
 
 type SortOption = "newest" | "oldest" | "name-smart";
@@ -243,6 +244,7 @@ function HistoryPage({
   onGoToDashboard,
   onGoToUpload,
   onGoToQuiz,
+  onGoToResearch,
   onOpenHistoryImage,
   onSearchCase,
 }: HistoryPageProps) {
@@ -465,6 +467,7 @@ function HistoryPage({
       onGoToDashboard={onGoToDashboard}
       onGoToUpload={onGoToUpload}
       onGoToQuiz={onGoToQuiz}
+      onGoToResearch={onGoToResearch}
       onLogout={onLogout}
       onSearchCase={onSearchCase}
     >

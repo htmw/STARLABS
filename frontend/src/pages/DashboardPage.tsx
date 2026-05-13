@@ -14,6 +14,7 @@ type DashboardPageProps = {
   onGoToQuiz: () => void;
   onOpenRecentUpload: (image: DashboardImage) => void;
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
+  onGoToResearch?: () => void;
 };
 
 type DashboardImage = {
@@ -48,6 +49,7 @@ function DashboardPage({
   onGoToQuiz,
   onOpenRecentUpload,
   onSearchCase,
+  onGoToResearch,
 }: DashboardPageProps) {
   const [images, setImages] = useState<DashboardImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,15 +119,16 @@ function DashboardPage({
 
   return (
     <AppShell
-      currentPage="dashboard"
-      title="Welcome back"
-      subtitle="Review your recent activity and start a new knee X-ray analysis."
-      onGoToUpload={onGoToUpload}
-      onGoToHistory={onGoToHistory}
-      onGoToQuiz={onGoToQuiz}
-      onLogout={onLogout}
-      onSearchCase={onSearchCase}
-    >
+  currentPage="dashboard"
+  title="Welcome back"
+  subtitle="Review your recent activity and start a new knee X-ray analysis."
+  onGoToUpload={onGoToUpload}
+  onGoToHistory={onGoToHistory}
+  onGoToQuiz={onGoToQuiz}
+  onGoToResearch={onGoToResearch}
+  onLogout={onLogout}
+  onSearchCase={onSearchCase}
+>
       {loading ? (
         <p className="kv-loading-message">Loading dashboard...</p>
       ) : fetchError ? (

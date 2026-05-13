@@ -10,18 +10,19 @@ import HistoryPage from "./pages/HistoryPage";
 import QuizPage from "./pages/QuizPage";
 import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
+import ResearchPage from "./pages/ResearchPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 import API_BASE_URL from "../src/config";
 
 const BACKEND = API_BASE_URL;
-// const BACKEND = "http://localhost:4000";
 
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-type AuthMode = "landing" | "login" | "register";
+type AuthMode = "landing" | "login" | "register" | "privacy";
 type AppView =
   | "dashboard"
   | "upload"
@@ -29,7 +30,8 @@ type AppView =
   | "history"
   | "quiz"
   | "settings"
-  | "profile";
+  | "profile"
+  | "research";
 
 type PredictionImageRef = {
   id?: string;
@@ -53,7 +55,6 @@ type SearchResult = {
 
 function getTimeValue(dateString?: string) {
   if (!dateString) return 0;
-
   const time = new Date(dateString).getTime();
   return Number.isNaN(time) ? 0 : time;
 }
@@ -64,14 +65,8 @@ function normalizeText(value?: string) {
 
 function getSearchCaseNumber(query: string) {
   const cleaned = query.trim().toLowerCase();
-
-  // Only formats like "case 3", "case 003", or "case #003"
-  // are treated as case-number search.
-  // Plain numbers like "003" will be treated as filename search.
   const match = cleaned.match(/^case\s*#?\s*0*(\d+)$/);
-
   if (!match) return null;
-
   const number = Number(match[1]);
   return Number.isFinite(number) && number > 0 ? number : null;
 }
@@ -87,7 +82,6 @@ function findImageBySearchQuery(
     const sortedOldestFirst = [...images].sort(
       (a, b) => getTimeValue(a.createdAt) - getTimeValue(b.createdAt),
     );
-
     return sortedOldestFirst[caseNumber - 1] || null;
   }
 
@@ -96,7 +90,6 @@ function findImageBySearchQuery(
       const id = normalizeText(image.id);
       const originalName = normalizeText(image.originalName);
       const fileUrl = normalizeText(image.fileUrl);
-
       return (
         id === normalizedQuery ||
         originalName.includes(normalizedQuery) ||
@@ -122,7 +115,6 @@ function App() {
   useEffect(() => {
     const storedTheme = localStorage.getItem("kv-theme");
     const safeTheme = storedTheme === "dark" ? "dark" : "light";
-
     document.documentElement.setAttribute("data-theme", safeTheme);
 
     if (localStorage.getItem("kv-compact-layout") === "true") {
@@ -144,14 +136,14 @@ function App() {
         nextView === "history" ||
         nextView === "quiz" ||
         nextView === "settings" ||
-        nextView === "profile"
+        nextView === "profile" ||
+        nextView === "research"
       ) {
         setAppView(nextView);
       }
     };
 
     window.addEventListener("kv:navigate", handleGlobalNavigate);
-
     return () => {
       window.removeEventListener("kv:navigate", handleGlobalNavigate);
     };
@@ -159,15 +151,10 @@ function App() {
 
   useEffect(() => {
     const scrollToTop = () => {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: "auto",
-      });
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     };
 
     scrollToTop();
-
     const frameId = window.requestAnimationFrame(scrollToTop);
     const timeoutId = window.setTimeout(scrollToTop, 120);
 
@@ -198,73 +185,41 @@ function App() {
 
   const handleAnalysisReady = (result: AnalysisResult & { id?: string }) => {
     const { id, ...rest } = result;
-
     setPredictionId(id);
     setAnalysisResult(rest);
     setAppView("results");
   };
 
-  const handleBackToUpload = () => {
-    setAppView("upload");
-  };
-
-  const handleGoToUpload = () => {
-    setAppView("upload");
-  };
-
-  const handleGoToDashboard = () => {
-    setAppView("dashboard");
-  };
-
-  const handleGoToHistory = () => {
-    setAppView("history");
-  };
-
-  const handleGoToQuiz = () => {
-    setAppView("quiz");
-  };
-
-  const handleGoToSettings = () => {
-    setAppView("settings");
-  };
-
-  const handleGoToProfile = () => {
-    setAppView("profile");
-  };
+  const handleBackToUpload = () => setAppView("upload");
+  const handleGoToUpload = () => setAppView("upload");
+  const handleGoToDashboard = () => setAppView("dashboard");
+  const handleGoToHistory = () => setAppView("history");
+  const handleGoToQuiz = () => setAppView("quiz");
+  const handleGoToSettings = () => setAppView("settings");
+  const handleGoToProfile = () => setAppView("profile");
+  const handleGoToResearch = () => setAppView("research");
 
   const handleOpenSavedAnalysis = async (
     image: PredictionImageRef,
   ): Promise<boolean> => {
     try {
-      if (!image.id) {
-        throw new Error("Image id is missing.");
-      }
+      if (!image.id) throw new Error("Image id is missing.");
 
       const res = await fetch(`${BACKEND}/api/v1/predictions`, {
         headers: authHeader(),
       });
 
-      if (res.status === 401) {
-        handleLogout();
-        return false;
-      }
+      if (res.status === 401) { handleLogout(); return false; }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(
-          errorData?.message || `Failed to load predictions (${res.status})`,
-        );
+        throw new Error(errorData?.message || `Failed to load predictions (${res.status})`);
       }
 
       const predictions: SavedPrediction[] = await res.json();
+      const matched = predictions.find((p) => p.imageId === image.id);
 
-      const matched = predictions.find(
-        (prediction) => prediction.imageId === image.id,
-      );
-
-      if (!matched) {
-        throw new Error("No saved prediction found for this upload.");
-      }
+      if (!matched) throw new Error("No saved prediction found for this upload.");
 
       const result: AnalysisResult = {
         imageUrl: image.imageData || `${BACKEND}${matched.fileUrl}`,
@@ -289,25 +244,16 @@ function App() {
       setAnalysisResult(result);
       setAppView("results");
 
-      // Fetch similar cases in the background.
-      // Opening the result should not wait for this request.
       void (async () => {
         try {
           const simRes = await fetch(`${BACKEND}/api/v1/similar`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...authHeader(),
-            },
-            body: JSON.stringify({
-              fileUrl: matched.fileUrl,
-              grade: matched.result.grade,
-            }),
+            headers: { "Content-Type": "application/json", ...authHeader() },
+            body: JSON.stringify({ fileUrl: matched.fileUrl, grade: matched.result.grade }),
           });
 
           if (simRes.ok) {
             const simData = await simRes.json();
-
             setAnalysisResult((prev) =>
               prev ? { ...prev, similarCases: simData.similarCases } : prev,
             );
@@ -327,64 +273,29 @@ function App() {
   const handleSearchCase = async (query: string): Promise<SearchResult> => {
     try {
       const trimmed = query.trim();
+      if (!trimmed) return { ok: false, message: "Please enter a case number or file name." };
 
-      if (!trimmed) {
-        return {
-          ok: false,
-          message: "Please enter a case number or file name.",
-        };
-      }
-
-      const res = await fetch(`${BACKEND}/api/v1/images`, {
-        headers: authHeader(),
-      });
+      const res = await fetch(`${BACKEND}/api/v1/images`, { headers: authHeader() });
 
       if (res.status === 401) {
         handleLogout();
-
-        return {
-          ok: false,
-          message: "Session expired. Please log in again.",
-        };
+        return { ok: false, message: "Session expired. Please log in again." };
       }
 
-      if (!res.ok) {
-        return {
-          ok: false,
-          message: "Search failed. Please try again.",
-        };
-      }
+      if (!res.ok) return { ok: false, message: "Search failed. Please try again." };
 
       const images: PredictionImageRef[] = await res.json();
       const matchedImage = findImageBySearchQuery(images, trimmed);
 
-      if (!matchedImage) {
-        return {
-          ok: false,
-          message: "No matching case found.",
-        };
-      }
+      if (!matchedImage) return { ok: false, message: "No matching case found." };
 
       const opened = await handleOpenSavedAnalysis(matchedImage);
+      if (!opened) return { ok: false, message: "No matching case found." };
 
-      if (!opened) {
-        return {
-          ok: false,
-          message: "No matching case found.",
-        };
-      }
-
-      return {
-        ok: true,
-        message: "Case opened.",
-      };
+      return { ok: true, message: "Case opened." };
     } catch (err) {
       console.error("Case search failed:", err);
-
-      return {
-        ok: false,
-        message: "Search failed. Please try again.",
-      };
+      return { ok: false, message: "Search failed. Please try again." };
     }
   };
 
@@ -398,6 +309,7 @@ function App() {
           onBackToDashboard={handleGoToDashboard}
           onGoToHistory={handleGoToHistory}
           onGoToQuiz={handleGoToQuiz}
+          onGoToResearch={handleGoToResearch}
           onLogout={handleLogout}
           onSearchCase={handleSearchCase}
         />
@@ -411,6 +323,7 @@ function App() {
           onGoToUpload={handleGoToUpload}
           onGoToHistory={handleGoToHistory}
           onGoToQuiz={handleGoToQuiz}
+          onGoToResearch={handleGoToResearch}
           onOpenRecentUpload={handleOpenSavedAnalysis}
           onSearchCase={handleSearchCase}
         />
@@ -424,6 +337,7 @@ function App() {
           onGoToDashboard={handleGoToDashboard}
           onGoToUpload={handleGoToUpload}
           onGoToQuiz={handleGoToQuiz}
+          onGoToResearch={handleGoToResearch}
           onOpenHistoryImage={handleOpenSavedAnalysis}
           onSearchCase={handleSearchCase}
         />
@@ -436,6 +350,7 @@ function App() {
           onBackToDashboard={handleGoToDashboard}
           onGoToUpload={handleGoToUpload}
           onGoToHistory={handleGoToHistory}
+          onGoToResearch={handleGoToResearch}
           onLogout={handleLogout}
           onSearchCase={handleSearchCase}
         />
@@ -450,6 +365,7 @@ function App() {
           onGoToUpload={handleGoToUpload}
           onGoToHistory={handleGoToHistory}
           onGoToQuiz={handleGoToQuiz}
+          onGoToResearch={handleGoToResearch}
           onSearchCase={handleSearchCase}
         />
       );
@@ -468,6 +384,20 @@ function App() {
       );
     }
 
+    if (appView === "research") {
+      return (
+        <ResearchPage
+          onLogout={handleLogout}
+          onGoToDashboard={handleGoToDashboard}
+          onGoToUpload={handleGoToUpload}
+          onGoToHistory={handleGoToHistory}
+          onGoToQuiz={handleGoToQuiz}
+          onSearchCase={handleSearchCase}
+          userGrade={analysisResult?.grade}
+        />
+      );
+    }
+
     return (
       <UploadPage
         onLogout={handleLogout}
@@ -475,17 +405,25 @@ function App() {
         onGoToDashboard={handleGoToDashboard}
         onGoToHistory={handleGoToHistory}
         onGoToQuiz={handleGoToQuiz}
+        onGoToResearch={handleGoToResearch}
         onOpenGalleryImage={handleOpenSavedAnalysis}
         onSearchCase={handleSearchCase}
       />
     );
   }
 
+  if (authMode === "privacy") {
+  return (
+    <PrivacyPage onBack={() => setAuthMode("landing")} />
+  );
+}
+
   if (authMode === "landing") {
     return (
       <LandingPage
         onLogin={() => setAuthMode("login")}
         onRegister={() => setAuthMode("register")}
+        onPrivacy={() => setAuthMode("privacy")}
       />
     );
   }
