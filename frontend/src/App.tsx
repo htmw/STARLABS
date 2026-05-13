@@ -11,6 +11,7 @@ import QuizPage from "./pages/QuizPage";
 import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import ResearchPage from "./pages/ResearchPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 import API_BASE_URL from "../src/config";
 
@@ -21,7 +22,7 @@ function authHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-type AuthMode = "landing" | "login" | "register";
+type AuthMode = "landing" | "login" | "register" | "privacy";
 type AppView =
   | "dashboard"
   | "upload"
@@ -411,11 +412,18 @@ function App() {
     );
   }
 
+  if (authMode === "privacy") {
+  return (
+    <PrivacyPage onBack={() => setAuthMode("landing")} />
+  );
+}
+
   if (authMode === "landing") {
     return (
       <LandingPage
         onLogin={() => setAuthMode("login")}
         onRegister={() => setAuthMode("register")}
+        onPrivacy={() => setAuthMode("privacy")}
       />
     );
   }

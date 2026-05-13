@@ -1,6 +1,7 @@
 type LandingPageProps = {
   onLogin: () => void;
   onRegister: () => void;
+  onPrivacy: () => void;
 };
 
 const features = [
@@ -27,7 +28,7 @@ const stats = [
   { value: "KL 0–4", label: "Full grading scale" },
 ];
 
-function LandingPage({ onLogin, onRegister }: LandingPageProps) {
+function LandingPage({ onLogin, onRegister, onPrivacy }: LandingPageProps) {
   return (
     <div className="landing-page auth-screen-transition">
       {/* ── Nav ── */}
@@ -90,6 +91,13 @@ function LandingPage({ onLogin, onRegister }: LandingPageProps) {
           </div>
         ))}
       </section>
+
+      <footer className="landing-footer">
+        <p>KneeVision — AI-assisted knee osteoarthritis analysis. Not a certified medical product.</p>
+        <button type="button" className="landing-footer-link" onClick={onPrivacy}>
+          Privacy Policy
+        </button>
+      </footer>
     </div>
   );
 }
