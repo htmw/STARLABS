@@ -63,6 +63,9 @@ type ResultsPageProps = {
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
 
+
+
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function ResultsPage({
@@ -90,6 +93,7 @@ function ResultsPage({
   const [historyLoading, setHistoryLoading] = useState(false);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollChatRef = useRef(false);
+  const [expandedCase, setExpandedCase] = useState<SimilarCase | null>(null);
 
   useEffect(() => {
     shouldAutoScrollChatRef.current = false;
@@ -424,71 +428,128 @@ function ResultsPage({
               </h3>
               <p>
                 Top {result.similarCases.length} visually similar X-rays from
-                the reference database, ranked by feature similarity.
+                the reference database. Click a case for clinical details.
               </p>
             </div>
           </div>
 
           <div className="results-similar-grid">
             {result.similarCases.map((c) => (
-              <article key={c.caseId} className="results-similar-card">
+              <article
+                key={c.caseId}
+                className="results-similar-card"
+                onClick={() => setExpandedCase(c)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="results-similar-image-frame">
                   {c.imageBase64 ? (
                     <img src={c.imageBase64} alt={`Case ${c.caseId}`} />
                   ) : (
                     <div className="results-similar-no-image">No image</div>
                   )}
-
                   <div className="results-similar-badge">
                     {(c.similarity * 100).toFixed(1)}% match
                   </div>
                 </div>
 
                 <div className="results-similar-meta">
-  <div className="results-similar-grade">
-    KL Grade {c.klGrade} · {c.gradeLabel}
-  </div>
-
-  <div className="results-similar-tags">
-    {c.progressionRisk && (
-      <span className="results-similar-tag">
-        Risk: {c.progressionRisk}
-      </span>
-    )}
-    {c.recommendedFollowup && (
-      <span className="results-similar-tag">
-        Follow-up: {c.recommendedFollowup}
-      </span>
-    )}
-    {c.patientProfile && (
-      <span className="results-similar-tag">
-        Profile: {c.patientProfile}
-      </span>
-    )}
-  </div>
-
-  {c.previousFindings && (
-    <p className="results-similar-findings">
-      <strong>Previous:</strong> {c.previousFindings}
-    </p>
-  )}
-
-  {c.suggestedActions && (
-    <p className="results-similar-findings">
-      <strong>Actions:</strong> {c.suggestedActions}
-    </p>
-  )}
-
-  {c.lifestyleFactors && (
-    <p className="results-similar-findings">
-      <strong>Lifestyle:</strong> {c.lifestyleFactors}
-    </p>
-  )}
-</div>
+                  <div className="results-similar-grade">
+                    KL Grade {c.klGrade} · {c.gradeLabel}
+                  </div>
+                  <div className="results-similar-tags">
+                    {c.progressionRisk && (
+                      <span className="results-similar-tag">
+                        Risk: {c.progressionRisk.split("–")[0].split("-")[0].trim()}
+                      </span>
+                    )}
+                    {c.patientProfile && (
+                      <span className="results-similar-tag">
+                        {c.patientProfile.split(",")[0]}
+                      </span>
+                    )}
+                  </div>
+                  <p className="results-similar-hint">Click to view details</p>
+                </div>
               </article>
             ))}
           </div>
         </section>
+      )}
+
+      {/* ─── Similar Case Modal ─────────────────────────────────────────── */}
+      {expandedCase && (
+        <div
+          className="results-case-modal-overlay"
+          onClick={() => setExpandedCase(null)}
+        >
+          <div
+            className="results-case-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="results-case-modal-close"
+              onClick={() => setExpandedCase(null)}
+            >
+              ✕
+            </button>
+
+           <div className="results-case-modal-header">
+              <div className="results-case-modal-thumb">
+                {expandedCase.imageBase64 ? (
+                  <img src={expandedCase.imageBase64} alt={`Case ${expandedCase.caseId}`} />
+                ) : (
+                  <div className="results-similar-no-image">No image</div>
+                )}
+              </div>
+              <div className="results-case-modal-title">
+                <h3>KL Grade {expandedCase.klGrade} · {expandedCase.gradeLabel}</h3>
+                <span className="results-similar-badge" style={{position: 'static'}}>
+                  {(expandedCase.similarity * 100).toFixed(1)}% match
+                </span>
+              </div>
+            </div>
+
+            <div className="results-case-modal-body">
+
+              {expandedCase.previousFindings && (
+                <div className="results-case-modal-field">
+                  <span>Previous Findings</span>
+                  <p>{expandedCase.previousFindings}</p>
+                </div>
+              )}
+              {expandedCase.suggestedActions && (
+                <div className="results-case-modal-field">
+                  <span>Suggested Actions</span>
+                  <p>{expandedCase.suggestedActions}</p>
+                </div>
+              )}
+              {expandedCase.progressionRisk && (
+                <div className="results-case-modal-field">
+                  <span>Progression Risk</span>
+                  <p>{expandedCase.progressionRisk}</p>
+                </div>
+              )}
+              {expandedCase.lifestyleFactors && (
+                <div className="results-case-modal-field">
+                  <span>Lifestyle Factors</span>
+                  <p>{expandedCase.lifestyleFactors}</p>
+                </div>
+              )}
+              {expandedCase.recommendedFollowup && (
+                <div className="results-case-modal-field">
+                  <span>Recommended Follow-up</span>
+                  <p>{expandedCase.recommendedFollowup}</p>
+                </div>
+              )}
+              {expandedCase.patientProfile && (
+                <div className="results-case-modal-field">
+                  <span>Patient Profile</span>
+                  <p>{expandedCase.patientProfile}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <section className="kv-panel kv-results-chat-section">
