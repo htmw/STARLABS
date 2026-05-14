@@ -31,15 +31,86 @@ type SavedPrediction = {
   fileUrl: string;
   result: {
     confidence?: number;
-    grade?: string;
+    grade?: string | number;
     severityLabel?: string;
   };
   createdAt?: string;
 };
 
+type GradeNumber = 0 | 1 | 2 | 3 | 4;
+
+type GradeMeta = {
+  value: GradeNumber;
+  label: string;
+  severity: string;
+  description: string;
+  color: string;
+};
+
+const GRADE_META: GradeMeta[] = [
+  {
+    value: 0,
+    label: "Grade 0",
+    severity: "Normal",
+    description: "No radiographic features of osteoarthritis.",
+    color: "#38d989",
+  },
+  {
+    value: 1,
+    label: "Grade 1",
+    severity: "Doubtful",
+    description: "Possible osteophytic lipping or doubtful narrowing.",
+    color: "#b9ef3f",
+  },
+  {
+    value: 2,
+    label: "Grade 2",
+    severity: "Mild",
+    description: "Definite osteophytes with possible joint space narrowing.",
+    color: "#f5df2e",
+  },
+  {
+    value: 3,
+    label: "Grade 3",
+    severity: "Moderate",
+    description: "Multiple osteophytes with definite joint space narrowing.",
+    color: "#f7a928",
+  },
+  {
+    value: 4,
+    label: "Grade 4",
+    severity: "Severe",
+    description: "Large osteophytes, marked narrowing, and severe sclerosis.",
+    color: "#ff6b6b",
+  },
+];
+
+const DONUT_RADIUS = 56;
+const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
+
 function authHeader(): Record<string, string> {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function isGradeNumber(value: number): value is GradeNumber {
+  return value >= 0 && value <= 4 && Number.isInteger(value);
+}
+
+function getGradeNumber(value?: string | number): GradeNumber | null {
+  if (typeof value === "number" && isGradeNumber(value)) {
+    return value;
+  }
+
+  const match = String(value ?? "").match(/(?:grade\s*)?([0-4])/i);
+  if (!match) return null;
+
+  const parsed = Number(match[1]);
+  return isGradeNumber(parsed) ? parsed : null;
+}
+
+function formatCaseCount(count: number) {
+  return count === 1 ? "1 case" : `${count} cases`;
 }
 
 function DashboardPage({
@@ -52,9 +123,10 @@ function DashboardPage({
   onGoToResearch,
 }: DashboardPageProps) {
   const [images, setImages] = useState<DashboardImage[]>([]);
+  const [predictions, setPredictions] = useState<SavedPrediction[]>([]);
+  const [hoveredGrade, setHoveredGrade] = useState<GradeNumber | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  const [avgConfidence, setAvgConfidence] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -91,17 +163,7 @@ function DashboardPage({
         const predictionData: SavedPrediction[] = await predictionsRes.json();
 
         setImages(imageData);
-
-        const confidenceValues = predictionData
-          .map((prediction) => prediction.result?.confidence)
-          .filter((value): value is number => typeof value === "number");
-
-        if (confidenceValues.length > 0) {
-          const total = confidenceValues.reduce((sum, value) => sum + value, 0);
-          setAvgConfidence(total / confidenceValues.length);
-        } else {
-          setAvgConfidence(null);
-        }
+        setPredictions(predictionData);
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Could not load dashboard data.";
@@ -117,18 +179,63 @@ function DashboardPage({
   const totalUploads = images.length;
   const recentUploads = images.slice(0, 3);
 
+  const gradeDistribution = GRADE_META.map((grade) => {
+    const count = predictions.filter(
+      (prediction) => getGradeNumber(prediction.result?.grade) === grade.value,
+    ).length;
+
+    return {
+      ...grade,
+      count,
+    };
+  });
+
+  const predictedCases = gradeDistribution.reduce(
+    (sum, grade) => sum + grade.count,
+    0,
+  );
+
+  const maxGradeCount = Math.max(
+    1,
+    ...gradeDistribution.map((grade) => grade.count),
+  );
+
+  let donutOffset = 0;
+  const donutSegments = gradeDistribution.map((grade) => {
+    const percentage = predictedCases > 0 ? grade.count / predictedCases : 0;
+    const dash = percentage * DONUT_CIRCUMFERENCE;
+
+    const segment = {
+      ...grade,
+      dash,
+      offset: donutOffset,
+      percentage,
+    };
+
+    donutOffset += dash;
+    return segment;
+  });
+
+  const activeGrade =
+    gradeDistribution.find((grade) => grade.value === hoveredGrade) ||
+    gradeDistribution.find((grade) => grade.count > 0) ||
+    gradeDistribution[0];
+
+  const activePercentage =
+    predictedCases > 0 ? (activeGrade.count / predictedCases) * 100 : 0;
+
   return (
     <AppShell
-  currentPage="dashboard"
-  title="Welcome back"
-  subtitle="Review your recent activity and start a new knee X-ray analysis."
-  onGoToUpload={onGoToUpload}
-  onGoToHistory={onGoToHistory}
-  onGoToQuiz={onGoToQuiz}
-  onGoToResearch={onGoToResearch}
-  onLogout={onLogout}
-  onSearchCase={onSearchCase}
->
+      currentPage="dashboard"
+      title="Welcome back"
+      subtitle="Review your recent activity and start a new knee X-ray analysis."
+      onGoToUpload={onGoToUpload}
+      onGoToHistory={onGoToHistory}
+      onGoToQuiz={onGoToQuiz}
+      onGoToResearch={onGoToResearch}
+      onLogout={onLogout}
+      onSearchCase={onSearchCase}
+    >
       {loading ? (
         <p className="kv-loading-message">Loading dashboard...</p>
       ) : fetchError ? (
@@ -159,25 +266,133 @@ function DashboardPage({
             </div>
           </section>
 
-          <section className="kv-dashboard-stats">
-            <div className="kv-stat-card">
-              <span>Total Uploads</span>
-              <strong>{totalUploads}</strong>
+          <section className="kv-dashboard-distribution-panel">
+            <div className="kv-dashboard-distribution-header">
+              <div>
+                <h3>KL Grade Distribution</h3>
+                <p>Based on saved AI prediction results.</p>
+              </div>
+
+              <div className="kv-dashboard-distribution-total">
+                <strong>{predictedCases}</strong>
+                <span>Predicted Cases</span>
+              </div>
             </div>
 
-            <div className="kv-stat-card">
-              <span>Avg Confidence Score</span>
-              <strong>
-                {avgConfidence !== null
-                  ? `${avgConfidence.toFixed(2)}%`
-                  : "N/A"}
-              </strong>
-            </div>
+            {predictedCases === 0 ? (
+              <div className="kv-dashboard-distribution-empty">
+                No prediction data yet. Upload and analyze knee X-ray images to
+                generate a KL grade distribution.
+              </div>
+            ) : (
+              <div className="kv-dashboard-distribution-body">
+                <div className="kv-grade-bars">
+                  {gradeDistribution.map((grade) => {
+                    const width = `${(grade.count / maxGradeCount) * 100}%`;
 
-            <div className="kv-stat-card">
-              <span>Recent Uploads</span>
-              <strong>{recentUploads.length}</strong>
-            </div>
+                    return (
+                      <button
+                        key={grade.value}
+                        type="button"
+                        className={`kv-grade-bar-row${hoveredGrade === grade.value
+                          ? " kv-grade-bar-row--active"
+                          : ""
+                          }`}
+                        onMouseEnter={() => setHoveredGrade(grade.value)}
+                        onFocus={() => setHoveredGrade(grade.value)}
+                        onMouseLeave={() => setHoveredGrade(null)}
+                        onBlur={() => setHoveredGrade(null)}
+                        aria-label={`${grade.label}, ${formatCaseCount(
+                          grade.count,
+                        )}`}
+                      >
+                        <span className="kv-grade-bar-label">
+                          {grade.label}
+                        </span>
+
+                        <span className="kv-grade-bar-track">
+                          <span
+                            className="kv-grade-bar-fill"
+                            style={{
+                              width,
+                              background: grade.color,
+                            }}
+                          />
+                        </span>
+
+                        <strong className="kv-grade-bar-count">
+                          {formatCaseCount(grade.count)}
+                        </strong>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="kv-grade-donut-area">
+                  <div className="kv-grade-donut-wrap">
+                    <svg
+                      className="kv-grade-donut"
+                      viewBox="0 0 160 160"
+                      role="img"
+                      aria-label="KL grade percentage distribution"
+                    >
+                      <circle
+                        className="kv-grade-donut-track"
+                        cx="80"
+                        cy="80"
+                        r={DONUT_RADIUS}
+                      />
+
+                      {donutSegments
+                        .filter((segment) => segment.count > 0)
+                        .map((segment) => (
+                          <circle
+                            key={segment.value}
+                            className={`kv-grade-donut-segment${hoveredGrade === segment.value
+                              ? " kv-grade-donut-segment--active"
+                              : ""
+                              }`}
+                            cx="80"
+                            cy="80"
+                            r={DONUT_RADIUS}
+                            stroke={segment.color}
+                            strokeDasharray={`${Math.max(
+                              segment.dash - 2,
+                              0,
+                            )} ${DONUT_CIRCUMFERENCE}`}
+                            strokeDashoffset={-segment.offset}
+                            onMouseEnter={() => setHoveredGrade(segment.value)}
+                            onFocus={() => setHoveredGrade(segment.value)}
+                            onMouseLeave={() => setHoveredGrade(null)}
+                            onBlur={() => setHoveredGrade(null)}
+                            tabIndex={0}
+                          />
+                        ))}
+                    </svg>
+
+                    <div className="kv-grade-donut-center">
+                      <strong>{predictedCases}</strong>
+                      <span>Cases</span>
+                    </div>
+                  </div>
+
+                  <div className="kv-grade-donut-detail">
+                    <span
+                      className="kv-grade-donut-dot"
+                      style={{ background: activeGrade.color }}
+                    />
+                    <div>
+                      <strong>{activeGrade.label}</strong>
+                      <p>
+                        {formatCaseCount(activeGrade.count)} ·{" "}
+                        {activePercentage.toFixed(1)}% · {activeGrade.severity}
+                      </p>
+                      <small>{activeGrade.description}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="kv-dashboard-grid">
@@ -215,7 +430,10 @@ function DashboardPage({
 
                       <div className="kv-recent-meta">
                         <strong>
-                          {`Case ${String(totalUploads - index).padStart(3, "0")}`}
+                          {`Case ${String(totalUploads - index).padStart(
+                            3,
+                            "0",
+                          )}`}
                         </strong>
                         <span>
                           {img.createdAt
