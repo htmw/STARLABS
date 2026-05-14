@@ -195,8 +195,8 @@ function App() {
   const handleGoToDashboard = () => setAppView("dashboard");
   const handleGoToHistory = () => setAppView("history");
   const handleGoToQuiz = () => setAppView("quiz");
-  const handleGoToSettings = () => setAppView("settings");
-  const handleGoToProfile = () => setAppView("profile");
+  // const handleGoToSettings = () => setAppView("settings");
+  // const handleGoToProfile = () => setAppView("profile");
   const handleGoToResearch = () => setAppView("research");
 
   const handleOpenSavedAnalysis = async (
@@ -232,12 +232,12 @@ function App() {
         heatmapUrl: matched.result.heatmapUrl,
         isMock: false,
         similarCases: matched.result.similarCases || [],
-        osteophyteSeverity: matched.result.osteophyteSeverity,
-        jointSpaceNarrowing: matched.result.jointSpaceNarrowing,
-        subchondralSclerosis: matched.result.subchondralSclerosis,
-        boneTexture: matched.result.boneTexture,
-        affectedCompartment: matched.result.affectedCompartment,
-        overallFindings: matched.result.overallFindings,
+        previousFindings: matched.result.previousFindings,
+        suggestedActions: matched.result.suggestedActions,
+        progressionRisk: matched.result.progressionRisk,
+        lifestyleFactors: matched.result.lifestyleFactors,
+        recommendedFollowup: matched.result.recommendedFollowup,
+        patientProfile: matched.result.patientProfile,
       };
 
       setPredictionId(matched.id);

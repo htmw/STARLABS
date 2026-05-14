@@ -18,13 +18,13 @@ export type SimilarCase = {
   similarity: number;
   imageBase64: string | null;
   klGrade: number;
-  datasetSource: string;
-  osteophyteSeverity: string;
-  jointSpaceNarrowing: string;
-  subchondralSclerosis: string;
-  boneTexture: string;
-  affectedCompartment: string;
-  overallFindings: string;
+  gradeLabel: string;
+  previousFindings: string;
+  suggestedActions: string;
+  progressionRisk: string;
+  lifestyleFactors: string;
+  recommendedFollowup: string;
+  patientProfile: string;
 };
 
 export type AnalysisResult = {
@@ -38,12 +38,12 @@ export type AnalysisResult = {
   heatmapUrl?: string;
   isMock?: boolean;
   similarCases?: SimilarCase[];
-  osteophyteSeverity?: string;
-  jointSpaceNarrowing?: string;
-  subchondralSclerosis?: string;
-  boneTexture?: string;
-  affectedCompartment?: string;
-  overallFindings?: string;
+  previousFindings?: string;
+  suggestedActions?: string;
+  progressionRisk?: string;
+  lifestyleFactors?: string;
+  recommendedFollowup?: string;
+  patientProfile?: string;
 };
 
 type ChatMessage = {
@@ -62,6 +62,9 @@ type ResultsPageProps = {
   onLogout: () => void;
   onSearchCase: (query: string) => Promise<{ ok: boolean; message?: string }>;
 };
+
+
+
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -90,6 +93,13 @@ function ResultsPage({
   const [historyLoading, setHistoryLoading] = useState(false);
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollChatRef = useRef(false);
+  const [expandedCase, setExpandedCase] = useState<SimilarCase | null>(null);
+  const [gradeInsights, setGradeInsights] = useState<{
+    whatItMeans: string;
+    typicalSymptoms: string[];
+    nextSteps: string[];
+  } | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   useEffect(() => {
     shouldAutoScrollChatRef.current = false;
@@ -156,6 +166,33 @@ function ResultsPage({
     }
   };
 
+  useEffect(() => {
+    const fetchInsights = async () => {
+      setInsightsLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BACKEND}/api/v1/grade-insights`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            grade: result.grade,
+            severityLabel: result.severityLabel,
+          }),
+        });
+        const data = await res.json();
+        setGradeInsights(data);
+      } catch {
+        // silently fail
+      } finally {
+        setInsightsLoading(false);
+      }
+    };
+    fetchInsights();
+  }, [result.grade]);
+
   const sendMessage = async () => {
     const text = chatInput.trim();
     if (!text || chatLoading) return;
@@ -181,22 +218,22 @@ function ResultsPage({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          imageBase64: result.imageUrl,
-          result: {
-            grade: result.grade,
-            severityLabel: result.severityLabel,
-            confidence: result.confidence,
-            summary: result.summary,
-            osteophyteSeverity: result.osteophyteSeverity ?? null,
-            jointSpaceNarrowing: result.jointSpaceNarrowing ?? null,
-            subchondralSclerosis: result.subchondralSclerosis ?? null,
-            boneTexture: result.boneTexture ?? null,
-            affectedCompartment: result.affectedCompartment ?? null,
-            overallFindings: result.overallFindings ?? null,
-          },
-          similarCases: result.similarCases ?? [],
-          messages: updatedMessages,
-        }),
+  imageBase64: result.imageUrl,
+  result: {
+    grade: result.grade,
+    severityLabel: result.severityLabel,
+    confidence: result.confidence,
+    summary: result.summary,
+    previousFindings: result.previousFindings ?? null,
+    suggestedActions: result.suggestedActions ?? null,
+    progressionRisk: result.progressionRisk ?? null,
+    lifestyleFactors: result.lifestyleFactors ?? null,
+    recommendedFollowup: result.recommendedFollowup ?? null,
+    patientProfile: result.patientProfile ?? null,
+  },
+  similarCases: result.similarCases ?? [],
+  messages: updatedMessages,
+}),
       });
 
       const data = await response.json();
@@ -262,20 +299,37 @@ function ResultsPage({
             <strong>{result.confidence.toFixed(2)}%</strong>
           </div>
 
-          <div
-            className="results-confidence-track"
-            role="progressbar"
-            aria-valuenow={result.confidence}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`Confidence ${result.confidence.toFixed(2)}%`}
-          >
+          <div className="kv-results-prob-hover-wrap">
             <div
-              className="results-confidence-fill"
-              style={{
-                width: `${Math.max(0, Math.min(result.confidence, 100))}%`,
-              }}
-            />
+              className="results-confidence-track"
+              role="progressbar"
+              aria-valuenow={result.confidence}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Confidence ${result.confidence.toFixed(2)}%`}
+            >
+              <div
+                className="results-confidence-fill"
+                style={{ width: `${Math.max(0, Math.min(result.confidence, 100))}%` }}
+              />
+            </div>
+
+            <p style={{fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: '4px 0 0', textAlign: 'center', letterSpacing: '0.04em'}}>
+                hover for grade breakdown
+              </p>
+
+            <div className="kv-results-prob-popover">
+              <div className="kv-prob-popover-title">Grade Distribution</div>
+              {result.probabilities.map((item) => (
+                <div key={item.label} className="kv-prob-popover-row">
+                  <span className="kv-prob-popover-label">{item.label}</span>
+                  <div className="kv-prob-popover-track">
+                    <div className="kv-prob-popover-fill" style={{ width: `${Math.max(item.value, 2)}%` }} />
+                  </div>
+                  <span className="kv-prob-popover-value">{item.value.toFixed(1)}%</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="kv-results-top-class">
@@ -285,131 +339,87 @@ function ResultsPage({
         </div>
       </section>
 
-      <section className="kv-results-image-grid">
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>Input Image</h3>
-              <p>Uploaded file: {result.fileName}</p>
+      <section className="kv-results-main-grid">
+        <div className="kv-results-image-pair">
+          <article className="kv-panel">
+            <div className="kv-panel-header">
+              <div>
+                <h3>Input Image</h3>
+                <p>{result.fileName}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="results-image-frame">
-            <img src={result.imageUrl} alt={result.fileName} />
-          </div>
-        </article>
-
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>
-                <Tooltip text="Highlights image regions influencing the prediction.">
-                  <span>Grad-CAM Explanation</span>
-                </Tooltip>
-              </h3>
-              <p>Regions the model focused on when making its prediction.</p>
-            </div>
-          </div>
-
-          {result.heatmapUrl ? (
             <div className="results-image-frame">
-              <img src={result.heatmapUrl} alt="Grad-CAM explanation" />
+              <img src={result.imageUrl} alt={result.fileName} />
+            </div>
+          </article>
+
+          <article className="kv-panel">
+            <div className="kv-panel-header">
+              <div>
+                <h3>
+                  <Tooltip text="Highlights image regions influencing the prediction.">
+                    <span>Grad-CAM</span>
+                  </Tooltip>
+                </h3>
+                <p>Regions the model focused on.</p>
+              </div>
+            </div>
+            {result.heatmapUrl ? (
+              <div className="results-image-frame">
+                <img src={result.heatmapUrl} alt="Grad-CAM explanation" />
+              </div>
+            ) : (
+              <div className="results-heatmap-frame">
+                <img src={result.imageUrl} alt="Grad-CAM placeholder" />
+                <div className="results-heatmap-overlay" />
+                <div className="results-heatmap-tag">Grad-CAM preview</div>
+              </div>
+            )}
+          </article>
+        </div>
+
+        <article className="kv-panel kv-results-summary-panel">
+          <div className="kv-panel-header">
+            <div>
+              <h3>Clinical Insights</h3>
+            </div>
+          </div>
+
+          {insightsLoading ? (
+            <div className="kv-insights-skeleton">
+              <div className="kv-skeleton-line kv-skeleton-line--full" />
+              <div className="kv-skeleton-line kv-skeleton-line--wide" />
+              <div className="kv-skeleton-line kv-skeleton-line--med" />
+              <div className="kv-skeleton-line kv-skeleton-line--full" />
+              <div className="kv-skeleton-line kv-skeleton-line--wide" />
+            </div>
+          ) : gradeInsights ? (
+            <div className="kv-insights-body">
+              <div className="kv-insights-section">
+                <span className="kv-insights-label">What this means</span>
+                <p className="kv-insights-text">{gradeInsights.whatItMeans}</p>
+              </div>
+              <div className="kv-insights-section">
+                <span className="kv-insights-label">Typical Symptoms</span>
+                <ul className="kv-insights-list">
+                  {gradeInsights.typicalSymptoms.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="kv-insights-section">
+                <span className="kv-insights-label">Next Steps</span>
+                <div className="kv-insights-steps">
+                  {gradeInsights.nextSteps.map((s, i) => (
+                    <div key={i} className="kv-insights-step">{s}</div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="results-heatmap-frame">
-              <img src={result.imageUrl} alt="Grad-CAM placeholder" />
-              <div className="results-heatmap-overlay" />
-              <div className="results-heatmap-tag">Grad-CAM preview</div>
-            </div>
+            <p className="kv-insights-error">Could not load insights.</p>
           )}
-        </article>
-      </section>
 
-      <section className="kv-results-detail-grid">
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>
-                <Tooltip text="Softmax distribution across KL classes.">
-                  <span>Class Probabilities</span>
-                </Tooltip>
-              </h3>
-              <p>Probability distribution across all five severity classes.</p>
-            </div>
-          </div>
-
-          <div className="results-probability-list">
-            {result.probabilities.map((item) => (
-              <div key={item.label} className="results-probability-row">
-                <span className="results-probability-label">{item.label}</span>
-
-                <div className="results-probability-track">
-                  <div
-                    className="results-probability-fill"
-                    style={{ width: `${Math.max(item.value, 2)}%` }}
-                  />
-                </div>
-
-                <span className="results-probability-value">
-                  {item.value.toFixed(2)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>Summary</h3>
-              <p>{result.summary}</p>
-            </div>
-          </div>
-
-          <div className="results-summary-grid">
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Prediction certainty; not diagnostic accuracy.">
-                  <span>Confidence</span>
-                </Tooltip>
-              </span>
-              <strong>{result.confidence.toFixed(2)}%</strong>
-            </div>
-
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Predicted Kellgren-Lawrence grade.">
-                  <span>Predicted class</span>
-                </Tooltip>
-              </span>
-              <strong>{result.grade}</strong>
-            </div>
-
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Readable label derived from KL grade.">
-                  <span>Severity band</span>
-                </Tooltip>
-              </span>
-              <strong>{result.severityLabel}</strong>
-            </div>
-
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Indicates whether heatmap output is available.">
-                  <span>Explanation</span>
-                </Tooltip>
-              </span>
-              <strong>{result.heatmapUrl ? "Connected" : "Placeholder"}</strong>
-            </div>
-          </div>
-
-          {result.isMock && (
-            <div className="results-note">
-              This is a front-end mock result. Once your predict endpoint is
-              ready, replace the mock data with the actual backend response.
-            </div>
-          )}
         </article>
       </section>
 
@@ -424,21 +434,25 @@ function ResultsPage({
               </h3>
               <p>
                 Top {result.similarCases.length} visually similar X-rays from
-                the reference database, ranked by feature similarity.
+                the reference database. Click a case for clinical details.
               </p>
             </div>
           </div>
 
           <div className="results-similar-grid">
             {result.similarCases.map((c) => (
-              <article key={c.caseId} className="results-similar-card">
+              <article
+                key={c.caseId}
+                className="results-similar-card"
+                onClick={() => setExpandedCase(c)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="results-similar-image-frame">
                   {c.imageBase64 ? (
                     <img src={c.imageBase64} alt={`Case ${c.caseId}`} />
                   ) : (
                     <div className="results-similar-no-image">No image</div>
                   )}
-
                   <div className="results-similar-badge">
                     {(c.similarity * 100).toFixed(1)}% match
                   </div>
@@ -446,51 +460,102 @@ function ResultsPage({
 
                 <div className="results-similar-meta">
                   <div className="results-similar-grade">
-                    KL Grade {c.klGrade}
+                    KL Grade {c.klGrade} · {c.gradeLabel}
                   </div>
-
                   <div className="results-similar-tags">
-                    {c.osteophyteSeverity && (
+                    {c.progressionRisk && (
                       <span className="results-similar-tag">
-                        Osteophytes: {c.osteophyteSeverity}
+                        Risk: {c.progressionRisk.split("–")[0].split("-")[0].trim()}
                       </span>
                     )}
-
-                    {c.jointSpaceNarrowing && (
+                    {c.patientProfile && (
                       <span className="results-similar-tag">
-                        JSN: {c.jointSpaceNarrowing}
-                      </span>
-                    )}
-
-                    {c.subchondralSclerosis && (
-                      <span className="results-similar-tag">
-                        Sclerosis: {c.subchondralSclerosis}
-                      </span>
-                    )}
-
-                    {c.boneTexture && (
-                      <span className="results-similar-tag">
-                        Texture: {c.boneTexture}
-                      </span>
-                    )}
-
-                    {c.affectedCompartment && (
-                      <span className="results-similar-tag">
-                        Compartment: {c.affectedCompartment}
+                        {c.patientProfile.split(",")[0]}
                       </span>
                     )}
                   </div>
-
-                  {c.overallFindings && (
-                    <p className="results-similar-findings">
-                      {c.overallFindings}
-                    </p>
-                  )}
+                  <p className="results-similar-hint">Click to view details</p>
                 </div>
               </article>
             ))}
           </div>
         </section>
+      )}
+
+      {/* ─── Similar Case Modal ─────────────────────────────────────────── */}
+      {expandedCase && (
+        <div
+          className="results-case-modal-overlay"
+          onClick={() => setExpandedCase(null)}
+        >
+          <div
+            className="results-case-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="results-case-modal-close"
+              onClick={() => setExpandedCase(null)}
+            >
+              ✕
+            </button>
+
+           <div className="results-case-modal-header">
+              <div className="results-case-modal-thumb">
+                {expandedCase.imageBase64 ? (
+                  <img src={expandedCase.imageBase64} alt={`Case ${expandedCase.caseId}`} />
+                ) : (
+                  <div className="results-similar-no-image">No image</div>
+                )}
+              </div>
+              <div className="results-case-modal-title">
+                <h3>KL Grade {expandedCase.klGrade} · {expandedCase.gradeLabel}</h3>
+                <span className="results-similar-badge" style={{position: 'static'}}>
+                  {(expandedCase.similarity * 100).toFixed(1)}% match
+                </span>
+              </div>
+            </div>
+
+            <div className="results-case-modal-body">
+
+              {expandedCase.previousFindings && (
+                <div className="results-case-modal-field">
+                  <span>Previous Findings</span>
+                  <p>{expandedCase.previousFindings}</p>
+                </div>
+              )}
+              {expandedCase.suggestedActions && (
+                <div className="results-case-modal-field">
+                  <span>Suggested Actions</span>
+                  <p>{expandedCase.suggestedActions}</p>
+                </div>
+              )}
+              {expandedCase.progressionRisk && (
+                <div className="results-case-modal-field">
+                  <span>Progression Risk</span>
+                  <p>{expandedCase.progressionRisk}</p>
+                </div>
+              )}
+              {expandedCase.lifestyleFactors && (
+                <div className="results-case-modal-field">
+                  <span>Lifestyle Factors</span>
+                  <p>{expandedCase.lifestyleFactors}</p>
+                </div>
+              )}
+              {expandedCase.recommendedFollowup && (
+                <div className="results-case-modal-field">
+                  <span>Recommended Follow-up</span>
+                  <p>{expandedCase.recommendedFollowup}</p>
+                </div>
+              )}
+              {expandedCase.patientProfile && (
+                <div className="results-case-modal-field">
+                  <span>Patient Profile</span>
+                  <p>{expandedCase.patientProfile}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <section className="kv-panel kv-results-chat-section">

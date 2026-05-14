@@ -593,12 +593,12 @@ app.post("/api/v1/chat", requireAuth, async (req, res) => {
       .map(
         (c, i) => `
 Case ${i + 1} (KL Grade ${c.klGrade}, ${(c.similarity * 100).toFixed(1)}% match):
-- Osteophytes: ${c.osteophyteSeverity}
-- Joint space narrowing: ${c.jointSpaceNarrowing}
-- Subchondral sclerosis: ${c.subchondralSclerosis}
-- Bone texture: ${c.boneTexture}
-- Affected compartment: ${c.affectedCompartment}
-- Findings: ${c.overallFindings}`,
+- Previous findings: ${c.previousFindings}
+- Suggested actions: ${c.suggestedActions}
+- Progression risk: ${c.progressionRisk}
+- Lifestyle factors: ${c.lifestyleFactors}
+- Recommended follow-up: ${c.recommendedFollowup}
+- Patient profile: ${c.patientProfile}`,
       )
       .join("\n");
 
@@ -608,12 +608,12 @@ UPLOADED IMAGE ANALYSIS:
 - Predicted KL Grade: ${result.grade}
 - Severity: ${result.severityLabel}
 - Confidence: ${result.confidence.toFixed(2)}%
-- Osteophytes: ${result.osteophyteSeverity ?? "N/A"}
-- Joint space narrowing: ${result.jointSpaceNarrowing ?? "N/A"}
-- Subchondral sclerosis: ${result.subchondralSclerosis ?? "N/A"}
-- Bone texture: ${result.boneTexture ?? "N/A"}
-- Affected compartment: ${result.affectedCompartment ?? "N/A"}
-- Findings: ${result.overallFindings ?? result.summary}
+- Previous findings: ${result.previousFindings ?? "N/A"}
+- Suggested actions: ${result.suggestedActions ?? "N/A"}
+- Progression risk: ${result.progressionRisk ?? "N/A"}
+- Lifestyle factors: ${result.lifestyleFactors ?? "N/A"}
+- Recommended follow-up: ${result.recommendedFollowup ?? "N/A"}
+- Summary: ${result.summary}
 
 SIMILAR REFERENCE CASES FROM DATABASE:
 ${similarSummary || "No similar cases available."}
@@ -952,12 +952,13 @@ app.post("/api/v1/quiz/submit", requireAuth, async (req, res) => {
     return res.status(200).json({
       correct,
       correctGrade: data.correctGrade,
-      osteophyteSeverity: data.osteophyteSeverity,
-      jointSpaceNarrowing: data.jointSpaceNarrowing,
-      subchondralSclerosis: data.subchondralSclerosis,
-      boneTexture: data.boneTexture,
-      affectedCompartment: data.affectedCompartment,
-      overallFindings: data.overallFindings,
+      gradeLabel: data.gradeLabel,
+      previousFindings: data.previousFindings,
+      suggestedActions: data.suggestedActions,
+      progressionRisk: data.progressionRisk,
+      lifestyleFactors: data.lifestyleFactors,
+      recommendedFollowup: data.recommendedFollowup,
+      patientProfile: data.patientProfile,
     });
   } catch (err) {
     console.error("Quiz submit failed:", err);
@@ -1258,6 +1259,78 @@ One sentence about evidence level or when to consult a physician.
     return res.status(500).json({ message: "Research chat request failed." });
   }
 });
+
+
+// ─── Grade Insights endpoint ──────────────────────────────────────────────────
+app.post("/api/v1/grade-insights", requireAuth, async (req, res) => {
+  try {
+    const { grade, severityLabel } = req.body || {};
+
+    if (!grade) {
+      return res.status(400).json({ message: "grade is required." });
+    }
+
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!GROQ_API_KEY) {
+      return res.status(500).json({ message: "Groq API key not configured." });
+    }
+
+    const prompt = `You are a clinical assistant specializing in knee osteoarthritis.
+
+A knee X-ray has been classified as ${grade} (${severityLabel}) osteoarthritis using the Kellgren-Lawrence grading system.
+
+Respond ONLY with a valid JSON object, no markdown, no explanation:
+
+{
+  "whatItMeans": "2-3 sentence plain English explanation of what this KL grade means clinically",
+  "typicalSymptoms": ["symptom 1", "symptom 2", "symptom 3", "symptom 4"],
+  "nextSteps": ["action 1", "action 2", "action 3"]
+}
+
+Be specific to ${grade}. Keep each symptom and next step concise (under 8 words).`;
+
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 400,
+          temperature: 0.3,
+        }),
+      }
+    );
+
+    if (!groqResponse.ok) {
+      const err = await groqResponse.text();
+      throw new Error(`Groq error (${groqResponse.status}): ${err}`);
+    }
+
+    const groqData = await groqResponse.json();
+    let raw = groqData.choices?.[0]?.message?.content ?? "";
+
+    // strip markdown fences if present
+    if (raw.includes("```")) {
+      const parts = raw.split("```");
+      for (const part of parts) {
+        const p = part.startsWith("json") ? part.slice(4).trim() : part.trim();
+        if (p.startsWith("{")) { raw = p; break; }
+      }
+    }
+
+    const insights = JSON.parse(raw);
+    return res.status(200).json(insights);
+  } catch (err) {
+    console.error("Grade insights failed:", err);
+    return res.status(500).json({ message: "Failed to generate insights." });
+  }
+});
+// ─── End Grade Insights endpoint ──────────────────────────────────────────────
 
 // ─── End Research Workspace endpoints ─────────────────────────────────────────
 startServer();
