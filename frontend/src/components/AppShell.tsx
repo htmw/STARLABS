@@ -1,4 +1,10 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import DashboardIcon from "../assets/icons/dashboard.svg?react";
+import UploadIcon from "../assets/icons/upload.svg?react";
+import HistoryIcon from "../assets/icons/history.svg?react";
+import QuizIcon from "../assets/icons/quiz.svg?react";
+import ProfileIcon from "../assets/icons/profile.svg?react";
+import SettingsIcon from "../assets/icons/settings.svg?react";
 
 type AppPage =
     | "dashboard"
@@ -122,46 +128,16 @@ function AppShell({
             );
         });
 
-    const workspaceNavItems = [
-        {
-            key: "dashboard" as const,
-            label: "Dashboard",
-            icon: "⌂",
-            onClick: onGoToDashboard,
-        },
-        {
-            key: "upload" as const,
-            label: "Upload",
-            icon: "＋",
-            onClick: onGoToUpload,
-        },
-        {
-            key: "history" as const,
-            label: "History",
-            icon: "▣",
-            onClick: onGoToHistory,
-        },
-        {
-            key: "quiz" as const,
-            label: "Quiz",
-            icon: "?",
-            onClick: onGoToQuiz,
-        },
+   const workspaceNavItems = [
+        { key: "dashboard" as const, label: "Dashboard", icon: <DashboardIcon width={16} height={16} />, onClick: onGoToDashboard },
+        { key: "upload" as const, label: "Upload", icon: <UploadIcon width={16} height={16} />, onClick: onGoToUpload },
+        { key: "history" as const, label: "History", icon: <HistoryIcon width={16} height={16} />, onClick: onGoToHistory },
+        { key: "quiz" as const, label: "Quiz", icon: <QuizIcon width={16} height={16} />, onClick: onGoToQuiz },
     ];
 
     const accountNavItems = [
-        {
-            key: "profile" as const,
-            label: "Profile",
-            icon: "U",
-            onClick: goToProfile,
-        },
-        {
-            key: "settings" as const,
-            label: "Settings",
-            icon: "⚙",
-            onClick: goToSettings,
-        },
+        { key: "profile" as const, label: "Profile", icon: <ProfileIcon width={16} height={16} />, onClick: goToProfile },
+        { key: "settings" as const, label: "Settings", icon: <SettingsIcon width={16} height={16} />, onClick: goToSettings },
     ];
 
     const showSearchNotice = (message: string, type: "success" | "error") => {
@@ -223,7 +199,7 @@ function AppShell({
     const renderNavItem = (item: {
         key: AppPage;
         label: string;
-        icon: string;
+        icon: ReactNode;
         onClick?: () => void;
     }) => {
         const isActive = currentPage === item.key;

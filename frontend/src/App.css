@@ -8961,3 +8961,26 @@ html[data-theme="dark"] .kv-skeleton-line {
 .kv-results-hero {
   overflow: visible;
 }
+
+.kv-sidebar-nav-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.kv-sidebar-nav-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  stroke: currentColor;
+  color: inherit;
+}
+
+.kv-sidebar-nav-icon svg path,
+.kv-sidebar-nav-icon svg rect,
+.kv-sidebar-nav-icon svg circle,
+.kv-sidebar-nav-icon svg polygon {
+  fill: currentColor;
+  stroke: none;
+}
