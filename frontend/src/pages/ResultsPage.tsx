@@ -18,13 +18,13 @@ export type SimilarCase = {
   similarity: number;
   imageBase64: string | null;
   klGrade: number;
-  datasetSource: string;
-  osteophyteSeverity: string;
-  jointSpaceNarrowing: string;
-  subchondralSclerosis: string;
-  boneTexture: string;
-  affectedCompartment: string;
-  overallFindings: string;
+  gradeLabel: string;
+  previousFindings: string;
+  suggestedActions: string;
+  progressionRisk: string;
+  lifestyleFactors: string;
+  recommendedFollowup: string;
+  patientProfile: string;
 };
 
 export type AnalysisResult = {
@@ -38,12 +38,12 @@ export type AnalysisResult = {
   heatmapUrl?: string;
   isMock?: boolean;
   similarCases?: SimilarCase[];
-  osteophyteSeverity?: string;
-  jointSpaceNarrowing?: string;
-  subchondralSclerosis?: string;
-  boneTexture?: string;
-  affectedCompartment?: string;
-  overallFindings?: string;
+  previousFindings?: string;
+  suggestedActions?: string;
+  progressionRisk?: string;
+  lifestyleFactors?: string;
+  recommendedFollowup?: string;
+  patientProfile?: string;
 };
 
 type ChatMessage = {
@@ -181,22 +181,22 @@ function ResultsPage({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          imageBase64: result.imageUrl,
-          result: {
-            grade: result.grade,
-            severityLabel: result.severityLabel,
-            confidence: result.confidence,
-            summary: result.summary,
-            osteophyteSeverity: result.osteophyteSeverity ?? null,
-            jointSpaceNarrowing: result.jointSpaceNarrowing ?? null,
-            subchondralSclerosis: result.subchondralSclerosis ?? null,
-            boneTexture: result.boneTexture ?? null,
-            affectedCompartment: result.affectedCompartment ?? null,
-            overallFindings: result.overallFindings ?? null,
-          },
-          similarCases: result.similarCases ?? [],
-          messages: updatedMessages,
-        }),
+  imageBase64: result.imageUrl,
+  result: {
+    grade: result.grade,
+    severityLabel: result.severityLabel,
+    confidence: result.confidence,
+    summary: result.summary,
+    previousFindings: result.previousFindings ?? null,
+    suggestedActions: result.suggestedActions ?? null,
+    progressionRisk: result.progressionRisk ?? null,
+    lifestyleFactors: result.lifestyleFactors ?? null,
+    recommendedFollowup: result.recommendedFollowup ?? null,
+    patientProfile: result.patientProfile ?? null,
+  },
+  similarCases: result.similarCases ?? [],
+  messages: updatedMessages,
+}),
       });
 
       const data = await response.json();
@@ -445,48 +445,46 @@ function ResultsPage({
                 </div>
 
                 <div className="results-similar-meta">
-                  <div className="results-similar-grade">
-                    KL Grade {c.klGrade}
-                  </div>
+  <div className="results-similar-grade">
+    KL Grade {c.klGrade} · {c.gradeLabel}
+  </div>
 
-                  <div className="results-similar-tags">
-                    {c.osteophyteSeverity && (
-                      <span className="results-similar-tag">
-                        Osteophytes: {c.osteophyteSeverity}
-                      </span>
-                    )}
+  <div className="results-similar-tags">
+    {c.progressionRisk && (
+      <span className="results-similar-tag">
+        Risk: {c.progressionRisk}
+      </span>
+    )}
+    {c.recommendedFollowup && (
+      <span className="results-similar-tag">
+        Follow-up: {c.recommendedFollowup}
+      </span>
+    )}
+    {c.patientProfile && (
+      <span className="results-similar-tag">
+        Profile: {c.patientProfile}
+      </span>
+    )}
+  </div>
 
-                    {c.jointSpaceNarrowing && (
-                      <span className="results-similar-tag">
-                        JSN: {c.jointSpaceNarrowing}
-                      </span>
-                    )}
+  {c.previousFindings && (
+    <p className="results-similar-findings">
+      <strong>Previous:</strong> {c.previousFindings}
+    </p>
+  )}
 
-                    {c.subchondralSclerosis && (
-                      <span className="results-similar-tag">
-                        Sclerosis: {c.subchondralSclerosis}
-                      </span>
-                    )}
+  {c.suggestedActions && (
+    <p className="results-similar-findings">
+      <strong>Actions:</strong> {c.suggestedActions}
+    </p>
+  )}
 
-                    {c.boneTexture && (
-                      <span className="results-similar-tag">
-                        Texture: {c.boneTexture}
-                      </span>
-                    )}
-
-                    {c.affectedCompartment && (
-                      <span className="results-similar-tag">
-                        Compartment: {c.affectedCompartment}
-                      </span>
-                    )}
-                  </div>
-
-                  {c.overallFindings && (
-                    <p className="results-similar-findings">
-                      {c.overallFindings}
-                    </p>
-                  )}
-                </div>
+  {c.lifestyleFactors && (
+    <p className="results-similar-findings">
+      <strong>Lifestyle:</strong> {c.lifestyleFactors}
+    </p>
+  )}
+</div>
               </article>
             ))}
           </div>

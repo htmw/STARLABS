@@ -11,23 +11,24 @@ type Difficulty = "easy" | "medium" | "hard";
 type Question = {
   caseId: string;
   imageBase64: string;
-  osteophyteSeverity: string;
-  jointSpaceNarrowing: string;
-  subchondralSclerosis: string;
-  boneTexture: string;
-  affectedCompartment: string;
-  overallFindings: string;
+  previousFindings: string;
+  suggestedActions: string;
+  progressionRisk: string;
+  lifestyleFactors: string;
+  recommendedFollowup: string;
+  patientProfile: string;
 };
 
 type AnswerResult = {
   correct: boolean;
   correctGrade: number;
-  osteophyteSeverity: string;
-  jointSpaceNarrowing: string;
-  subchondralSclerosis: string;
-  boneTexture: string;
-  affectedCompartment: string;
-  overallFindings: string;
+  gradeLabel: string;
+  previousFindings: string;
+  suggestedActions: string;
+  progressionRisk: string;
+  lifestyleFactors: string;
+  recommendedFollowup: string;
+  patientProfile: string;
 };
 
 type LeaderboardEntry = {
@@ -480,44 +481,45 @@ function QuizPage({
           </div>
 
           <div className="quiz-findings-grid">
-            {answerResult.osteophyteSeverity && (
+            {answerResult.progressionRisk && (
               <div className="quiz-finding">
-                <span>Osteophytes</span>
-                <strong>{answerResult.osteophyteSeverity}</strong>
+                <span>Progression Risk</span>
+                <strong>{answerResult.progressionRisk}</strong>
               </div>
             )}
 
-            {answerResult.jointSpaceNarrowing && (
+            {answerResult.recommendedFollowup && (
               <div className="quiz-finding">
-                <span>Joint Space Narrowing</span>
-                <strong>{answerResult.jointSpaceNarrowing}</strong>
+                <span>Recommended Follow-up</span>
+                <strong>{answerResult.recommendedFollowup}</strong>
               </div>
             )}
 
-            {answerResult.subchondralSclerosis && (
+            {answerResult.patientProfile && (
               <div className="quiz-finding">
-                <span>Subchondral Sclerosis</span>
-                <strong>{answerResult.subchondralSclerosis}</strong>
+                <span>Patient Profile</span>
+                <strong>{answerResult.patientProfile}</strong>
               </div>
             )}
 
-            {answerResult.boneTexture && (
+            {answerResult.lifestyleFactors && (
               <div className="quiz-finding">
-                <span>Bone Texture</span>
-                <strong>{answerResult.boneTexture}</strong>
-              </div>
-            )}
-
-            {answerResult.affectedCompartment && (
-              <div className="quiz-finding">
-                <span>Compartment</span>
-                <strong>{answerResult.affectedCompartment}</strong>
+                <span>Lifestyle Factors</span>
+                <strong>{answerResult.lifestyleFactors}</strong>
               </div>
             )}
           </div>
 
-          {answerResult.overallFindings && (
-            <p className="quiz-findings-text">{answerResult.overallFindings}</p>
+          {answerResult.previousFindings && (
+            <p className="quiz-findings-text">
+              <strong>Previous:</strong> {answerResult.previousFindings}
+            </p>
+          )}
+
+          {answerResult.suggestedActions && (
+            <p className="quiz-findings-text">
+              <strong>Actions:</strong> {answerResult.suggestedActions}
+            </p>
           )}
 
           <div className="quiz-feedback-meta">

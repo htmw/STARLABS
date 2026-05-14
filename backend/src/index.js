@@ -593,12 +593,12 @@ app.post("/api/v1/chat", requireAuth, async (req, res) => {
       .map(
         (c, i) => `
 Case ${i + 1} (KL Grade ${c.klGrade}, ${(c.similarity * 100).toFixed(1)}% match):
-- Osteophytes: ${c.osteophyteSeverity}
-- Joint space narrowing: ${c.jointSpaceNarrowing}
-- Subchondral sclerosis: ${c.subchondralSclerosis}
-- Bone texture: ${c.boneTexture}
-- Affected compartment: ${c.affectedCompartment}
-- Findings: ${c.overallFindings}`,
+- Previous findings: ${c.previousFindings}
+- Suggested actions: ${c.suggestedActions}
+- Progression risk: ${c.progressionRisk}
+- Lifestyle factors: ${c.lifestyleFactors}
+- Recommended follow-up: ${c.recommendedFollowup}
+- Patient profile: ${c.patientProfile}`,
       )
       .join("\n");
 
@@ -608,12 +608,12 @@ UPLOADED IMAGE ANALYSIS:
 - Predicted KL Grade: ${result.grade}
 - Severity: ${result.severityLabel}
 - Confidence: ${result.confidence.toFixed(2)}%
-- Osteophytes: ${result.osteophyteSeverity ?? "N/A"}
-- Joint space narrowing: ${result.jointSpaceNarrowing ?? "N/A"}
-- Subchondral sclerosis: ${result.subchondralSclerosis ?? "N/A"}
-- Bone texture: ${result.boneTexture ?? "N/A"}
-- Affected compartment: ${result.affectedCompartment ?? "N/A"}
-- Findings: ${result.overallFindings ?? result.summary}
+- Previous findings: ${result.previousFindings ?? "N/A"}
+- Suggested actions: ${result.suggestedActions ?? "N/A"}
+- Progression risk: ${result.progressionRisk ?? "N/A"}
+- Lifestyle factors: ${result.lifestyleFactors ?? "N/A"}
+- Recommended follow-up: ${result.recommendedFollowup ?? "N/A"}
+- Summary: ${result.summary}
 
 SIMILAR REFERENCE CASES FROM DATABASE:
 ${similarSummary || "No similar cases available."}
@@ -952,12 +952,13 @@ app.post("/api/v1/quiz/submit", requireAuth, async (req, res) => {
     return res.status(200).json({
       correct,
       correctGrade: data.correctGrade,
-      osteophyteSeverity: data.osteophyteSeverity,
-      jointSpaceNarrowing: data.jointSpaceNarrowing,
-      subchondralSclerosis: data.subchondralSclerosis,
-      boneTexture: data.boneTexture,
-      affectedCompartment: data.affectedCompartment,
-      overallFindings: data.overallFindings,
+      gradeLabel: data.gradeLabel,
+      previousFindings: data.previousFindings,
+      suggestedActions: data.suggestedActions,
+      progressionRisk: data.progressionRisk,
+      lifestyleFactors: data.lifestyleFactors,
+      recommendedFollowup: data.recommendedFollowup,
+      patientProfile: data.patientProfile,
     });
   } catch (err) {
     console.error("Quiz submit failed:", err);
