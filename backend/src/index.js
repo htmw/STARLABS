@@ -1260,5 +1260,77 @@ One sentence about evidence level or when to consult a physician.
   }
 });
 
+
+// ─── Grade Insights endpoint ──────────────────────────────────────────────────
+app.post("/api/v1/grade-insights", requireAuth, async (req, res) => {
+  try {
+    const { grade, severityLabel } = req.body || {};
+
+    if (!grade) {
+      return res.status(400).json({ message: "grade is required." });
+    }
+
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!GROQ_API_KEY) {
+      return res.status(500).json({ message: "Groq API key not configured." });
+    }
+
+    const prompt = `You are a clinical assistant specializing in knee osteoarthritis.
+
+A knee X-ray has been classified as ${grade} (${severityLabel}) osteoarthritis using the Kellgren-Lawrence grading system.
+
+Respond ONLY with a valid JSON object, no markdown, no explanation:
+
+{
+  "whatItMeans": "2-3 sentence plain English explanation of what this KL grade means clinically",
+  "typicalSymptoms": ["symptom 1", "symptom 2", "symptom 3", "symptom 4"],
+  "nextSteps": ["action 1", "action 2", "action 3"]
+}
+
+Be specific to ${grade}. Keep each symptom and next step concise (under 8 words).`;
+
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 400,
+          temperature: 0.3,
+        }),
+      }
+    );
+
+    if (!groqResponse.ok) {
+      const err = await groqResponse.text();
+      throw new Error(`Groq error (${groqResponse.status}): ${err}`);
+    }
+
+    const groqData = await groqResponse.json();
+    let raw = groqData.choices?.[0]?.message?.content ?? "";
+
+    // strip markdown fences if present
+    if (raw.includes("```")) {
+      const parts = raw.split("```");
+      for (const part of parts) {
+        const p = part.startsWith("json") ? part.slice(4).trim() : part.trim();
+        if (p.startsWith("{")) { raw = p; break; }
+      }
+    }
+
+    const insights = JSON.parse(raw);
+    return res.status(200).json(insights);
+  } catch (err) {
+    console.error("Grade insights failed:", err);
+    return res.status(500).json({ message: "Failed to generate insights." });
+  }
+});
+// ─── End Grade Insights endpoint ──────────────────────────────────────────────
+
 // ─── End Research Workspace endpoints ─────────────────────────────────────────
 startServer();

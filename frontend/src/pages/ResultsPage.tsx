@@ -94,6 +94,12 @@ function ResultsPage({
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollChatRef = useRef(false);
   const [expandedCase, setExpandedCase] = useState<SimilarCase | null>(null);
+  const [gradeInsights, setGradeInsights] = useState<{
+    whatItMeans: string;
+    typicalSymptoms: string[];
+    nextSteps: string[];
+  } | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   useEffect(() => {
     shouldAutoScrollChatRef.current = false;
@@ -159,6 +165,33 @@ function ResultsPage({
       // silently fail — history save is non-critical
     }
   };
+
+  useEffect(() => {
+    const fetchInsights = async () => {
+      setInsightsLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${BACKEND}/api/v1/grade-insights`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            grade: result.grade,
+            severityLabel: result.severityLabel,
+          }),
+        });
+        const data = await res.json();
+        setGradeInsights(data);
+      } catch {
+        // silently fail
+      } finally {
+        setInsightsLoading(false);
+      }
+    };
+    fetchInsights();
+  }, [result.grade]);
 
   const sendMessage = async () => {
     const text = chatInput.trim();
@@ -266,20 +299,37 @@ function ResultsPage({
             <strong>{result.confidence.toFixed(2)}%</strong>
           </div>
 
-          <div
-            className="results-confidence-track"
-            role="progressbar"
-            aria-valuenow={result.confidence}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`Confidence ${result.confidence.toFixed(2)}%`}
-          >
+          <div className="kv-results-prob-hover-wrap">
             <div
-              className="results-confidence-fill"
-              style={{
-                width: `${Math.max(0, Math.min(result.confidence, 100))}%`,
-              }}
-            />
+              className="results-confidence-track"
+              role="progressbar"
+              aria-valuenow={result.confidence}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Confidence ${result.confidence.toFixed(2)}%`}
+            >
+              <div
+                className="results-confidence-fill"
+                style={{ width: `${Math.max(0, Math.min(result.confidence, 100))}%` }}
+              />
+            </div>
+
+            <p style={{fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: '4px 0 0', textAlign: 'center', letterSpacing: '0.04em'}}>
+                hover for grade breakdown
+              </p>
+
+            <div className="kv-results-prob-popover">
+              <div className="kv-prob-popover-title">Grade Distribution</div>
+              {result.probabilities.map((item) => (
+                <div key={item.label} className="kv-prob-popover-row">
+                  <span className="kv-prob-popover-label">{item.label}</span>
+                  <div className="kv-prob-popover-track">
+                    <div className="kv-prob-popover-fill" style={{ width: `${Math.max(item.value, 2)}%` }} />
+                  </div>
+                  <span className="kv-prob-popover-value">{item.value.toFixed(1)}%</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="kv-results-top-class">
@@ -289,131 +339,87 @@ function ResultsPage({
         </div>
       </section>
 
-      <section className="kv-results-image-grid">
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>Input Image</h3>
-              <p>Uploaded file: {result.fileName}</p>
+      <section className="kv-results-main-grid">
+        <div className="kv-results-image-pair">
+          <article className="kv-panel">
+            <div className="kv-panel-header">
+              <div>
+                <h3>Input Image</h3>
+                <p>{result.fileName}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="results-image-frame">
-            <img src={result.imageUrl} alt={result.fileName} />
-          </div>
-        </article>
-
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>
-                <Tooltip text="Highlights image regions influencing the prediction.">
-                  <span>Grad-CAM Explanation</span>
-                </Tooltip>
-              </h3>
-              <p>Regions the model focused on when making its prediction.</p>
-            </div>
-          </div>
-
-          {result.heatmapUrl ? (
             <div className="results-image-frame">
-              <img src={result.heatmapUrl} alt="Grad-CAM explanation" />
+              <img src={result.imageUrl} alt={result.fileName} />
+            </div>
+          </article>
+
+          <article className="kv-panel">
+            <div className="kv-panel-header">
+              <div>
+                <h3>
+                  <Tooltip text="Highlights image regions influencing the prediction.">
+                    <span>Grad-CAM</span>
+                  </Tooltip>
+                </h3>
+                <p>Regions the model focused on.</p>
+              </div>
+            </div>
+            {result.heatmapUrl ? (
+              <div className="results-image-frame">
+                <img src={result.heatmapUrl} alt="Grad-CAM explanation" />
+              </div>
+            ) : (
+              <div className="results-heatmap-frame">
+                <img src={result.imageUrl} alt="Grad-CAM placeholder" />
+                <div className="results-heatmap-overlay" />
+                <div className="results-heatmap-tag">Grad-CAM preview</div>
+              </div>
+            )}
+          </article>
+        </div>
+
+        <article className="kv-panel kv-results-summary-panel">
+          <div className="kv-panel-header">
+            <div>
+              <h3>Clinical Insights</h3>
+            </div>
+          </div>
+
+          {insightsLoading ? (
+            <div className="kv-insights-skeleton">
+              <div className="kv-skeleton-line kv-skeleton-line--full" />
+              <div className="kv-skeleton-line kv-skeleton-line--wide" />
+              <div className="kv-skeleton-line kv-skeleton-line--med" />
+              <div className="kv-skeleton-line kv-skeleton-line--full" />
+              <div className="kv-skeleton-line kv-skeleton-line--wide" />
+            </div>
+          ) : gradeInsights ? (
+            <div className="kv-insights-body">
+              <div className="kv-insights-section">
+                <span className="kv-insights-label">What this means</span>
+                <p className="kv-insights-text">{gradeInsights.whatItMeans}</p>
+              </div>
+              <div className="kv-insights-section">
+                <span className="kv-insights-label">Typical Symptoms</span>
+                <ul className="kv-insights-list">
+                  {gradeInsights.typicalSymptoms.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="kv-insights-section">
+                <span className="kv-insights-label">Next Steps</span>
+                <div className="kv-insights-steps">
+                  {gradeInsights.nextSteps.map((s, i) => (
+                    <div key={i} className="kv-insights-step">{s}</div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="results-heatmap-frame">
-              <img src={result.imageUrl} alt="Grad-CAM placeholder" />
-              <div className="results-heatmap-overlay" />
-              <div className="results-heatmap-tag">Grad-CAM preview</div>
-            </div>
+            <p className="kv-insights-error">Could not load insights.</p>
           )}
-        </article>
-      </section>
 
-      <section className="kv-results-detail-grid">
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>
-                <Tooltip text="Softmax distribution across KL classes.">
-                  <span>Class Probabilities</span>
-                </Tooltip>
-              </h3>
-              <p>Probability distribution across all five severity classes.</p>
-            </div>
-          </div>
-
-          <div className="results-probability-list">
-            {result.probabilities.map((item) => (
-              <div key={item.label} className="results-probability-row">
-                <span className="results-probability-label">{item.label}</span>
-
-                <div className="results-probability-track">
-                  <div
-                    className="results-probability-fill"
-                    style={{ width: `${Math.max(item.value, 2)}%` }}
-                  />
-                </div>
-
-                <span className="results-probability-value">
-                  {item.value.toFixed(2)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="kv-panel">
-          <div className="kv-panel-header">
-            <div>
-              <h3>Summary</h3>
-              <p>{result.summary}</p>
-            </div>
-          </div>
-
-          <div className="results-summary-grid">
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Prediction certainty; not diagnostic accuracy.">
-                  <span>Confidence</span>
-                </Tooltip>
-              </span>
-              <strong>{result.confidence.toFixed(2)}%</strong>
-            </div>
-
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Predicted Kellgren-Lawrence grade.">
-                  <span>Predicted class</span>
-                </Tooltip>
-              </span>
-              <strong>{result.grade}</strong>
-            </div>
-
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Readable label derived from KL grade.">
-                  <span>Severity band</span>
-                </Tooltip>
-              </span>
-              <strong>{result.severityLabel}</strong>
-            </div>
-
-            <div className="results-info-box">
-              <span>
-                <Tooltip text="Indicates whether heatmap output is available.">
-                  <span>Explanation</span>
-                </Tooltip>
-              </span>
-              <strong>{result.heatmapUrl ? "Connected" : "Placeholder"}</strong>
-            </div>
-          </div>
-
-          {result.isMock && (
-            <div className="results-note">
-              This is a front-end mock result. Once your predict endpoint is
-              ready, replace the mock data with the actual backend response.
-            </div>
-          )}
         </article>
       </section>
 
