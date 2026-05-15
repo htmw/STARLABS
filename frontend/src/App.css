@@ -3196,13 +3196,25 @@ body {
 .kv-sidebar-nav-icon {
   width: 26px;
   height: 26px;
-  border-radius: 9px;
-  background: rgba(192, 213, 228, 0.45);
+  border-radius: 6px;
+  background: transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #1c538e;
-  font-weight: 800;
+  color: currentColor;
+}
+
+.kv-sidebar-nav-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.kv-sidebar-nav-icon svg path,
+.kv-sidebar-nav-icon svg rect,
+.kv-sidebar-nav-icon svg circle,
+.kv-sidebar-nav-icon svg polygon,
+.kv-sidebar-nav-icon svg line {
+  stroke-width: 1.2;
 }
 
 .kv-user-card {
@@ -9496,4 +9508,91 @@ html[data-theme="dark"] .kv-dashboard-distribution-empty {
 .kv-grade-donut-detail p,
 .kv-grade-donut-detail small {
   font-size: 11px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE WORKSPACE SCALE
+═══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --kv-content-scale: 1;
+  --kv-content-max: 1180px;
+  --kv-content-pad-x: 28px;
+}
+
+.kv-topbar,
+.kv-workspace-content {
+  width: 100%;
+  max-width: var(--kv-content-max);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 1439px) {
+  :root {
+    --kv-content-scale: 1;
+    --kv-content-max: 1180px;
+    --kv-content-pad-x: 28px;
+  }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --kv-content-scale: 1.08;
+    --kv-content-max: 1360px;
+    --kv-content-pad-x: clamp(32px, 2.5vw, 56px);
+  }
+
+  .kv-workspace {
+    padding-left: var(--kv-content-pad-x);
+    padding-right: var(--kv-content-pad-x);
+  }
+
+  .kv-workspace-content {
+    font-size: calc(1rem * var(--kv-content-scale));
+  }
+
+  .kv-dashboard-hero,
+  .kv-results-hero,
+  .kv-quiz-hero {
+    min-height: 260px;
+  }
+
+  .kv-panel {
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1800px) {
+  :root {
+    --kv-content-scale: 1.15;
+    --kv-content-max: 1560px;
+    --kv-content-pad-x: clamp(40px, 3vw, 80px);
+  }
+
+  .kv-workspace {
+    padding-left: var(--kv-content-pad-x);
+    padding-right: var(--kv-content-pad-x);
+  }
+
+  .kv-workspace-content {
+    font-size: calc(1rem * var(--kv-content-scale));
+  }
+
+  .kv-dashboard-hero,
+  .kv-results-hero,
+  .kv-quiz-hero {
+    min-height: 290px;
+  }
+
+  .kv-panel {
+    padding: 28px;
+  }
+}
+
+@media (min-width: 2400px) {
+  :root {
+    --kv-content-scale: 1.18;
+    --kv-content-max: 1680px;
+  }
 }

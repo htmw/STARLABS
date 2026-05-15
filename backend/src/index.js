@@ -58,17 +58,18 @@ app.get("/health", (_req, res) => {
 // SCRUM-18: user registration
 app.post("/api/v1/auth/register", async (req, res) => {
   try {
-    const { email, password } = req.body || {};
+    const { email, password, username } = req.body || {};
 
-    const normalizedEmail = String(email || "")
-      .trim()
-      .toLowerCase();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
     const pwd = String(password || "");
+    const normalizedUsername = String(username || "").trim();
 
     if (!normalizedEmail || !pwd) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required." });
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
+    if (!normalizedUsername) {
+      return res.status(400).json({ message: "Username is required." });
     }
 
     if (!isValidEmail(normalizedEmail)) {
@@ -94,6 +95,7 @@ app.post("/api/v1/auth/register", async (req, res) => {
 
     const user = {
       email: normalizedEmail,
+      username: normalizedUsername,
       passwordHash,
       createdAt: now,
       updatedAt: now,
@@ -124,25 +126,26 @@ app.post("/api/v1/auth/register", async (req, res) => {
 // SCRUM-19: user login
 app.post("/api/v1/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body || {};
+    const { identifier, password } = req.body || {};
 
-    const normalizedEmail = String(email || "")
-      .trim()
-      .toLowerCase();
+    const normalizedIdentifier = String(identifier || "").trim().toLowerCase();
     const pwd = String(password || "");
 
-    if (!normalizedEmail || !pwd) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required." });
+    if (!normalizedIdentifier || !pwd) {
+      return res.status(400).json({ message: "Email or username and password are required." });
     }
 
     const db = getDb();
     const users = db.collection("users");
 
-    const user = await users.findOne({ email: normalizedEmail });
+    const isEmail = normalizedIdentifier.includes("@");
+    const user = await users.findOne(
+      isEmail
+        ? { email: normalizedIdentifier }
+        : { username: normalizedIdentifier }
+    );
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      return res.status(401).json({ message: "Invalid credentials." });
     }
 
     const passwordMatches = await bcrypt.compare(pwd, user.passwordHash);
@@ -162,6 +165,7 @@ app.post("/api/v1/auth/login", async (req, res) => {
         id: user._id.toString(),
         userId: user.userId || user._id.toString(),
         email: user.email,
+        username: user.username || null,
         createdAt: user.createdAt,
       },
     });
