@@ -8,6 +8,7 @@ type LoginResponse = {
   user?: {
     id?: string;
     email?: string;
+    username?: string;
   };
   message?: string;
 };
@@ -17,62 +18,40 @@ type LoginFormProps = {
 };
 
 function LoginForm({ onLoginSuccess }: LoginFormProps) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     setError("");
 
-    if (!email.trim()) {
-      setError("Email is required.");
-      return;
-    }
-
-    if (!password) {
-      setError("Password is required.");
-      return;
-    }
+    if (!identifier.trim()) { setError("Email or username is required."); return; }
+    if (!password) { setError("Password is required."); return; }
 
     try {
       setLoading(true);
 
       const response = await fetch(`${BACKEND}/api/v1/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+          identifier: identifier.trim().toLowerCase(),
           password,
         }),
       });
 
       const data: LoginResponse = await response.json();
+      if (!response.ok) throw new Error(data.message || "Login failed.");
 
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed.");
-      }
-
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
-
+      if (data.token) localStorage.setItem("token", data.token);
+      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("kv-last-login", new Date().toISOString());
 
       onLoginSuccess();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -80,13 +59,13 @@ function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      <label htmlFor="email">Email</label>
+      <label htmlFor="identifier">Email or Username</label>
       <input
-        id="email"
-        type="email"
-        placeholder="Enter your email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        id="identifier"
+        type="text"
+        placeholder="Enter your email or username"
+        value={identifier}
+        onChange={(e) => setIdentifier(e.target.value)}
       />
 
       <label htmlFor="password">Password</label>

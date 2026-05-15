@@ -7,6 +7,17 @@ const BACKEND = API_BASE_URL;
 
 // const BACKEND = "http://localhost:4000";
 
+function getUserLabel() {
+  try {
+    const rawUser = localStorage.getItem("user");
+    if (!rawUser) return "Researcher";
+    const user = JSON.parse(rawUser);
+    return user.username || user.email || "Researcher";
+  } catch {
+    return "Researcher";
+  }
+}
+
 type DashboardPageProps = {
   onLogout: () => void;
   onGoToUpload: () => void;
@@ -246,12 +257,17 @@ function DashboardPage({
             <div className="kv-dashboard-hero-content">
               <span className="kv-dashboard-eyebrow">AI X-ray Workspace</span>
 
-              <h2>Start a new knee osteoarthritis analysis</h2>
+             <h2>Hey, Dr. {getUserLabel()}</h2>
+{/* <p style={{color: 'rgba(255,255,255,0.7)', fontSize: '14px', marginBottom: '8px'}}>
+  Start a new knee osteoarthritis analysis
+</p> */}
 
               <p>
-                Upload a knee X-ray image, run AI-assisted KL grade prediction,
+                {/* Upload a knee X-ray image, run AI-assisted KL grade prediction,
                 and review confidence, probability breakdown, and saved history
-                in one workspace.
+                in one workspace. */}
+
+                What'd you like to do today?
               </p>
 
               <div className="kv-dashboard-hero-actions">

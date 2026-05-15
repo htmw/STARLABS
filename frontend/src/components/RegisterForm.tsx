@@ -1,14 +1,10 @@
 import { useState } from "react";
-
 import API_BASE_URL from "../config";
 
 const BACKEND = API_BASE_URL;
 
 type RegisterResponse = {
-  user?: {
-    id?: string;
-    email?: string;
-  };
+  user?: { id?: string; email?: string; };
   message?: string;
 };
 
@@ -18,66 +14,44 @@ type RegisterFormProps = {
 
 function RegisterForm({ onRegistrationSuccess }: RegisterFormProps) {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     setError("");
     setSuccess("");
 
-    if (!email.trim()) {
-      setError("Email is required.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
+    if (!email.trim()) { setError("Email is required."); return; }
+    if (!username.trim()) { setError("Username is required."); return; }
+    if (username.trim().length < 2) { setError("Username must be at least 2 characters."); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (password !== confirmPassword) { setError("Passwords do not match."); return; }
 
     try {
       setLoading(true);
-
       const response = await fetch(`${BACKEND}/api/v1/auth/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
+          username: username.trim(),
           password,
         }),
       });
 
       const data: RegisterResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed.");
-      }
+      if (!response.ok) throw new Error(data.message || "Registration failed.");
 
       setSuccess("Registration successful. Redirecting to login...");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-
-      setTimeout(() => {
-        onRegistrationSuccess();
-      }, 800);
+      setEmail(""); setUsername(""); setPassword(""); setConfirmPassword("");
+      setTimeout(() => onRegistrationSuccess(), 800);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -92,6 +66,15 @@ function RegisterForm({ onRegistrationSuccess }: RegisterFormProps) {
         placeholder="Enter your email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <label htmlFor="username">Username</label>
+      <input
+        id="username"
+        type="text"
+        placeholder="Choose a username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
       />
 
       <label htmlFor="password">Password</label>
